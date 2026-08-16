@@ -1,0 +1,20 @@
+# build scratch / pipeline control files (never ship)
+.build_metadata*
+.builder_*
+.spawn.*
+.stage_*
+PUBLISH_BLOCKED.md
+BUILD_SETUP_NEXT_STEPS.md
+
+# editor / agent-local context
+.claude/
+CLAUDE.md
+
+# the local omission ledger (per-repo SQLite DB + WAL/SHM)
+.omitledger/
+
+# go build artifacts
+/omitledger
+/dist/
+*.test
+*.out

@@ -1,0 +1,136 @@
+package ledger
+
+import (
+	"path/filepath"
+	"testing"
+)
+
+func TestStoreAddListReopen(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "ledger.db")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+
+	o1, err := s.Add(Omission{Item: "parser unit test", Reason: "trivial getter, low risk", File: "parser.go", Category: "test", SessionID: "s1"})
+	if err != nil {
+		t.Fatalf("add1: %v", err)
+	}
+	if o1.ID == "" {
+		t.Fatal("add1: empty ID")
+	}
+	if len(o1.ID) != 26 {
+		t.Fatalf("add1 ID len = %d, want 26 (ULID)", len(o1.ID))
+	}
+	if o1.Status != StatusOpen {
+		t.Fatalf("add1 status = %q, want open", o1.Status)
+	}
+
+	o2, err := s.Add(Omission{Item: "retry-path error log", Reason: "rare branch, deferred", File: "retry.go", Category: "log", SessionID: "s1"})
+	if err != nil {
+		t.Fatalf("add2: %v", err)
+	}
+
+	// list returns oldest first (insertion order via ULID + created_at).
+	all, err := s.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("list all: %v", err)
+	}
+	if len(all) != 2 {
+		t.Fatalf("list len = %d, want 2", len(all))
+	}
+	if all[0].ID != o1.ID {
+		t.Fatalf("order: first = %s, want %s", all[0].ID, o1.ID)
+	}
+
+	// reopen o1.
+	r, err := s.Reopen(o1.ID, "needs the test")
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	if r.Status != StatusReopened {
+		t.Fatalf("reopen status = %q, want reopened", r.Status)
+	}
+	if r.ReopenedAt == nil {
+		t.Fatal("reopen: nil ReopenedAt")
+	}
+
+	// status filter: open -> only o2.
+	open, err := s.List(ListFilter{Status: "open"})
+	if err != nil {
+		t.Fatalf("list open: %v", err)
+	}
+	if len(open) != 1 || open[0].ID != o2.ID {
+		t.Fatalf("open filter = %+v", open)
+	}
+	// closed (not open) -> only o1 (reopened).
+	closed, err := s.List(ListFilter{Status: "closed"})
+	if err != nil {
+		t.Fatalf("list closed: %v", err)
+	}
+	if len(closed) != 1 || closed[0].ID != o1.ID {
+		t.Fatalf("closed filter = %+v", closed)
+	}
+
+	openN, totalN, err := s.Counts()
+	if err != nil {
+		t.Fatalf("counts: %v", err)
+	}
+	if openN != 1 || totalN != 2 {
+		t.Fatalf("counts = open %d total %d, want 1/2", openN, totalN)
+	}
+
+	// reopen unknown id errors.
+	if _, err := s.Reopen("bogus", ""); err == nil {
+		t.Fatal("reopen bogus: expected error")
+	}
+}
+
+func TestValidate(t *testing.T) {
+	if err := (Omission{}).Validate(); err == nil {
+		t.Fatal("empty omission should fail validation")
+	}
+	if err := (Omission{Item: "x"}).Validate(); err == nil {
+		t.Fatal("missing reason should fail")
+	}
+	if err := (Omission{Item: "x", Reason: "y"}).Validate(); err != nil {
+		t.Fatalf("valid omission failed: %v", err)
+	}
+}
+
+func TestResolveRefLineAndID(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(filepath.Join(dir, "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	o1, _ := s.Add(Omission{Item: "a", Reason: "r1"})
+	o2, _ := s.Add(Omission{Item: "b", Reason: "r2"})
+
+	// line number resolves to the nth omission (oldest first).
+	id, err := s.ResolveRef("2")
+	if err != nil {
+		t.Fatalf("resolve line 2: %v", err)
+	}
+	if id != o2.ID {
+		t.Fatalf("line 2 -> %s, want %s", id, o2.ID)
+	}
+	// ULID resolves to itself.
+	id, err = s.ResolveRef(o1.ID)
+	if err != nil {
+		t.Fatalf("resolve ulid: %v", err)
+	}
+	if id != o1.ID {
+		t.Fatalf("ulid -> %s, want %s", id, o1.ID)
+	}
+	// out of range and unknown both error.
+	if _, err := s.ResolveRef("99"); err == nil {
+		t.Fatal("line 99 should error")
+	}
+	if _, err := s.ResolveRef("not-a-ulid-or-int"); err == nil {
+		t.Fatal("unknown ref should error")
+	}
+}
