@@ -18,3 +18,7 @@ CLAUDE.md
 /dist/
 *.test
 *.out
+.builder_*.md
+.eval_*.yaml
+.build_metadata*.yaml
+.spawn_*
