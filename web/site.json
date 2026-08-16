@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "name": "omitledger",
+  "github": "https://github.com/SuperMarioYL/omitledger",
+  "host": "omitledger.lei6393.com",
+  "lang": { "primary": "zh", "toggle": true },
+  "accent": ["#14b8a6", "#0d9488", "#0f766e"],
+  "hero": {
+    "eyebrow": { "zh": "本地 · 无账号 · 单二进制", "en": "Local · No account · One binary" },
+    "headline": {
+      "zh": "Agent 少做了什么\n一眼就能分辨",
+      "en": "See exactly what\nyour agent skipped"
+    },
+    "sub": {
+      "zh": "当编码 Agent 刻意省略一项，当场记下它跳过了什么、为什么——把合理省略和偷工减料变成可查、可重做的记录。",
+      "en": "The instant your coding agent deliberately skips something, OmitLedger records what was omitted and why — turning justified laziness into a queryable, re-requestable record you can tell apart from a silently cut corner."
+    },
+    "command": "omitledger add --item 'parser test' --reason 'trivial'",
+    "cta": { "zh": "快速开始", "en": "Quick start" },
+    "ctaGithub": { "zh": "GitHub", "en": "GitHub" },
+    "scroll": { "zh": "往下看", "en": "Scroll" }
+  },
+  "advantages": [
+    {
+      "title": { "zh": "省略当场留痕", "en": "Every omission, on the record" },
+      "body": {
+        "zh": "Agent 决定跳过的那一刻就记下事项、理由与目标文件——不用等它写完再回头猜它漏了什么。",
+        "en": "The moment an agent decides to skip, the item, its stated reason, and target file are captured — no diffing output against a mental model of 'complete' afterwards."
+      },
+      "chips": ["› init / add / list / reopen", "› 一段 agent skill 让它主动上报", "› 数据全留在本地"]
+    },
+    {
+      "title": { "zh": "合理省略 vs 偷工减料", "en": "Justified laziness vs cut corners" },
+      "body": {
+        "zh": "每条省略都带 Agent 自述的理由，一本可查的台账让你分辨它究竟是审慎最小化还是偷偷砍角。",
+        "en": "Each omission carries the agent's own stated reason, in a queryable ledger that tells apart prudent minimization from a quietly cut corner."
+      },
+      "chips": ["› --reason 必填", "› 状态 open / reopened", "› 跨会话可审计"]
+    },
+    {
+      "title": { "zh": "可疑的一条，一键重做", "en": "Reopen the one that looks off" },
+      "body": {
+        "zh": "看到不靠谱的省略，一条命令标回「需要重做」，下个会话重新注入——不必全盘推翻整次运行。",
+        "en": "Spot an omission that looks off, mark it back to 'needs redo', and it's re-injected into the next session — no need to throw out the whole run."
+      },
+      "chips": ["› omitledger reopen <id>", "› 重做项可追踪", "› 一条命令退回"]
+    }
+  ],
+  "scene": { "kind": "hub-nodes", "nodes": ["Claude Code", "Cursor", "Aider", "Codex CLI"] },
+  "cta": {
+    "headline": { "zh": "让 Agent 的省略留下记录", "en": "Make your agent's omissions leave a trace" },
+    "sub": { "zh": "一个二进制，一个本地文件，零云端。MIT 开源。", "en": "One binary, one local file, zero cloud. MIT-licensed open source." },
+    "button": { "zh": "查看 GitHub", "en": "View on GitHub" }
+  },
+  "footer": { "tag": { "zh": "本地 · 无账号 · 开源", "en": "Local · No account · Open source" } }
+}
