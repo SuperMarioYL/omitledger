@@ -104,6 +104,10 @@
           "alt": {
             "zh": "完整 shell 脚本创建临时台账，记录一条合成省略、查看列表、reopen 后再次查看。ID 随运行生成。",
             "en": "A complete shell script creates a temporary ledger, records one synthetic omission, lists it, reopens it and lists it again. IDs are generated on each run."
+          },
+          "mobile": {
+            "light": "/assets/presentation/process-mobile-light.svg",
+            "dark": "/assets/presentation/process-mobile-dark.svg"
           }
         }
       },
@@ -122,6 +126,10 @@
           "alt": {
             "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；当前命令入口中的 mcp 与 report 仍为占位。",
             "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. The current mcp and report command entry points remain placeholders."
+          },
+          "mobile": {
+            "light": "/assets/presentation/architecture-mobile-light.svg",
+            "dark": "/assets/presentation/architecture-mobile-dark.svg"
           }
         }
       },
@@ -140,6 +148,10 @@
           "alt": {
             "zh": "可以在 Agent 工作流中显式调用 CLI，也可参考自带的技能片段。它依赖调用方主动记录，不会扫描代码推断遗漏，也不判断理由是否合理。",
             "en": "Workflows can explicitly call the CLI or use the supplied skill snippet as guidance. Recording is cooperative: it does not infer omissions from code or decide whether a reason is justified."
+          },
+          "mobile": {
+            "light": "/assets/presentation/integrations-mobile-light.svg",
+            "dark": "/assets/presentation/integrations-mobile-dark.svg"
           }
         }
       }
