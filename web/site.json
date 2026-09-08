@@ -1,56 +1,236 @@
 {
-  "schema": 1,
-  "name": "omitledger",
+  "schema": 3,
+  "name": "OmitLedger",
   "github": "https://github.com/SuperMarioYL/omitledger",
   "host": "omitledger.lei6393.com",
-  "lang": { "primary": "zh", "toggle": true },
-  "accent": ["#14b8a6", "#0d9488", "#0f766e"],
+  "palette": "auto",
+  "lang": {
+    "primary": "zh",
+    "toggle": true
+  },
+  "meta": {
+    "visual_profile": "neon-particle",
+    "content_version": "0.1.0",
+    "demo_source": "docs/demo-results.json"
+  },
   "hero": {
-    "eyebrow": { "zh": "本地 · 无账号 · 单二进制", "en": "Local · No account · One binary" },
+    "eyebrow": {
+      "zh": "把省略的事项、理由、文件与会话记录到本地台账，供审阅者决定哪些需要重新处理。",
+      "en": "Record skipped items, reasons, files and sessions in a local ledger so reviewers can decide what needs another pass."
+    },
     "headline": {
-      "zh": "Agent 少做了什么\n一眼就能分辨",
-      "en": "See exactly what\nyour agent skipped"
+      "zh": "让被省略的工作留下理由。",
+      "en": "Keep a reason for omitted work."
     },
     "sub": {
-      "zh": "当编码 Agent 刻意省略一项，当场记下它跳过了什么、为什么——把合理省略和偷工减料变成可查、可重做的记录。",
-      "en": "The instant your coding agent deliberately skips something, OmitLedger records what was omitted and why — turning justified laziness into a queryable, re-requestable record you can tell apart from a silently cut corner."
+      "zh": "把省略的事项、理由、文件与会话记录到本地台账，供审阅者决定哪些需要重新处理。",
+      "en": "Record skipped items, reasons, files and sessions in a local ledger so reviewers can decide what needs another pass."
     },
-    "command": "omitledger add --item 'parser test' --reason 'trivial'",
-    "cta": { "zh": "快速开始", "en": "Quick start" },
-    "ctaGithub": { "zh": "GitHub", "en": "GitHub" },
-    "scroll": { "zh": "往下看", "en": "Scroll" }
+    "href": "#quickstart",
+    "cta": {
+      "zh": "运行示例",
+      "en": "Run the example"
+    },
+    "ctaGithub": {
+      "zh": "查看源码",
+      "en": "View source"
+    }
+  },
+  "scene": {
+    "kind": "neon-graph",
+    "caption": {
+      "zh": "图示展示组件关系；实际输出见下方示例。",
+      "en": "An illustrative component scene; recorded output appears below."
+    },
+    "fallback": "/assets/presentation/scene-dark.svg",
+    "fallbackLight": "/assets/presentation/scene-light.svg"
   },
   "advantages": [
     {
-      "title": { "zh": "省略当场留痕", "en": "Every omission, on the record" },
-      "body": {
-        "zh": "Agent 决定跳过的那一刻就记下事项、理由与目标文件——不用等它写完再回头猜它漏了什么。",
-        "en": "The moment an agent decides to skip, the item, its stated reason, and target file are captured — no diffing output against a mental model of 'complete' afterwards."
+      "title": {
+        "zh": "记录省略理由",
+        "en": "Record the reason"
       },
-      "chips": ["› init / add / list / reopen", "› 一段 agent skill 让它主动上报", "› 数据全留在本地"]
+      "body": {
+        "zh": "事项与理由一起保留。",
+        "en": "Keep the item and reason together."
+      }
     },
     {
-      "title": { "zh": "合理省略 vs 偷工减料", "en": "Justified laziness vs cut corners" },
-      "body": {
-        "zh": "每条省略都带 Agent 自述的理由，一本可查的台账让你分辨它究竟是审慎最小化还是偷偷砍角。",
-        "en": "Each omission carries the agent's own stated reason, in a queryable ledger that tells apart prudent minimization from a quietly cut corner."
+      "title": {
+        "zh": "保留上下文",
+        "en": "Keep context"
       },
-      "chips": ["› --reason 必填", "› 状态 open / reopened", "› 跨会话可审计"]
+      "body": {
+        "zh": "文件、类别与会话可查询。",
+        "en": "File, category and session remain queryable."
+      }
     },
     {
-      "title": { "zh": "可疑的一条，一键重做", "en": "Reopen the one that looks off" },
-      "body": {
-        "zh": "看到不靠谱的省略，一条命令标回「需要重做」，下个会话重新注入——不必全盘推翻整次运行。",
-        "en": "Spot an omission that looks off, mark it back to 'needs redo', and it's re-injected into the next session — no need to throw out the whole run."
+      "title": {
+        "zh": "明确复核动作",
+        "en": "Explicit follow-up"
       },
-      "chips": ["› omitledger reopen <id>", "› 重做项可追踪", "› 一条命令退回"]
+      "body": {
+        "zh": "reopen 留下再次处理的备注。",
+        "en": "reopen retains the follow-up note."
+      }
     }
   ],
-  "scene": { "kind": "hub-nodes", "nodes": ["Claude Code", "Cursor", "Aider", "Codex CLI"] },
-  "cta": {
-    "headline": { "zh": "让 Agent 的省略留下记录", "en": "Make your agent's omissions leave a trace" },
-    "sub": { "zh": "一个二进制，一个本地文件，零云端。MIT 开源。", "en": "One binary, one local file, zero cloud. MIT-licensed open source." },
-    "button": { "zh": "查看 GitHub", "en": "View on GitHub" }
+  "story": {
+    "intro": {
+      "title": {
+        "zh": "解决什么问题",
+        "en": "The task it solves"
+      },
+      "body": {
+        "zh": "审阅一次 Agent 修改时，已经写出的内容容易看到，主动没做的部分却常常消失。OmitLedger 让调用方在做出省略决定时记录事项和自述理由，随后通过列表和 reopen 形成可追踪的复核动作。",
+        "en": "During review, completed changes are visible while deliberately omitted work can disappear. OmitLedger lets a caller record the item and stated reason at the time of omission, then use list and reopen to make follow-up review traceable."
+      }
+    },
+    "sections": [
+      {
+        "title": {
+          "zh": "从输入到结果",
+          "en": "From input to result"
+        },
+        "body": {
+          "zh": "完整 shell 脚本创建临时台账，记录一条合成省略、查看列表、reopen 后再次查看。ID 随运行生成。",
+          "en": "A complete shell script creates a temporary ledger, records one synthetic omission, lists it, reopens it and lists it again. IDs are generated on each run."
+        },
+        "image": {
+          "light": "/assets/presentation/process-light.svg",
+          "dark": "/assets/presentation/process-dark.svg",
+          "alt": {
+            "zh": "完整 shell 脚本创建临时台账，记录一条合成省略、查看列表、reopen 后再次查看。ID 随运行生成。",
+            "en": "A complete shell script creates a temporary ledger, records one synthetic omission, lists it, reopens it and lists it again. IDs are generated on each run."
+          }
+        }
+      },
+      {
+        "title": {
+          "zh": "工作原理",
+          "en": "How it works"
+        },
+        "body": {
+          "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；当前命令入口中的 mcp 与 report 仍为占位。",
+          "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. The current mcp and report command entry points remain placeholders."
+        },
+        "image": {
+          "light": "/assets/presentation/architecture-light.svg",
+          "dark": "/assets/presentation/architecture-dark.svg",
+          "alt": {
+            "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；当前命令入口中的 mcp 与 report 仍为占位。",
+            "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. The current mcp and report command entry points remain placeholders."
+          }
+        }
+      },
+      {
+        "title": {
+          "zh": "能力与接入",
+          "en": "Capabilities and integration"
+        },
+        "body": {
+          "zh": "可以在 Agent 工作流中显式调用 CLI，也可参考自带的技能片段。它依赖调用方主动记录，不会扫描代码推断遗漏，也不判断理由是否合理。",
+          "en": "Workflows can explicitly call the CLI or use the supplied skill snippet as guidance. Recording is cooperative: it does not infer omissions from code or decide whether a reason is justified."
+        },
+        "image": {
+          "light": "/assets/presentation/integrations-light.svg",
+          "dark": "/assets/presentation/integrations-dark.svg",
+          "alt": {
+            "zh": "可以在 Agent 工作流中显式调用 CLI，也可参考自带的技能片段。它依赖调用方主动记录，不会扫描代码推断遗漏，也不判断理由是否合理。",
+            "en": "Workflows can explicitly call the CLI or use the supplied skill snippet as guidance. Recording is cooperative: it does not infer omissions from code or decide whether a reason is justified."
+          }
+        }
+      }
+    ],
+    "details": [
+      {
+        "title": {
+          "zh": "使用方式",
+          "en": "Usage"
+        },
+        "body": {
+          "zh": "可以在 Agent 工作流中显式调用 CLI，也可参考自带的技能片段。它依赖调用方主动记录，不会扫描代码推断遗漏，也不判断理由是否合理。",
+          "en": "Workflows can explicitly call the CLI or use the supplied skill snippet as guidance. Recording is cooperative: it does not infer omissions from code or decide whether a reason is justified."
+        }
+      },
+      {
+        "title": {
+          "zh": "配置",
+          "en": "Configuration"
+        },
+        "body": {
+          "zh": "台账位置优先级：`--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`。会话优先读取 `OMITLEDGER_SESSION`、CLAUDE_SESSION_ID、CURSOR_SESSION_ID，最终回退 local。SQLite 使用 WAL 与 5000ms busy timeout。",
+          "en": "Ledger location precedence is `--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`. Session precedence is `OMITLEDGER_SESSION`, CLAUDE_SESSION_ID, CURSOR_SESSION_ID, then local. SQLite uses WAL and a 5000ms busy timeout."
+        }
+      }
+    ]
   },
-  "footer": { "tag": { "zh": "本地 · 无账号 · 开源", "en": "Local · No account · Open source" } }
+  "demo": {
+    "title": {
+      "zh": "实际运行结果",
+      "en": "Actual demo output"
+    },
+    "note": {
+      "zh": "完整 shell 脚本创建临时台账，记录一条合成省略、查看列表、reopen 后再次查看。ID 随运行生成。",
+      "en": "A complete shell script creates a temporary ledger, records one synthetic omission, lists it, reopens it and lists it again. IDs are generated on each run."
+    },
+    "source": "https://github.com/SuperMarioYL/omitledger/blob/main/docs/demo-results.json",
+    "steps": [
+      {
+        "label": {
+          "zh": "记录并重新请求",
+          "en": "Record and reopen"
+        },
+        "body": {
+          "zh": "同一事项从 open 变为 reopened，备注要求覆盖重试分支。",
+          "en": "The same item moves from open to reopened with a note requesting retry-branch coverage."
+        },
+        "command": "bash examples/presentation-demo.sh",
+        "output": "recorded omission 000T0ZPHK7EB5WN6SCHAH9546H\n  item:     retry-path test\n  file:     retry.go\n  category: test\n  reason:   deferred during initial implementation\n  session:  presentation-demo\n#  ID                          STATUS  CATEGORY  FILE      ITEM             REASON\n1  000T0ZPHK7EB5WN6SCHAH9546H  open    test      retry.go  retry-path test  deferred during initial implementation\n\n1 omission(s)\nreopened 000T0ZPHK7EB5WN6SCHAH9546H: retry-path test\n  note: cover the retry branch\n#  ID                          STATUS    CATEGORY  FILE      ITEM             REASON\n1  000T0ZPHK7EB5WN6SCHAH9546H  reopened  test      retry.go  retry-path test  deferred during initial implementation\n\n1 omission(s)\n",
+        "image": "/assets/presentation/demo-0-light.svg",
+        "imageDark": "/assets/presentation/demo-0-dark.svg"
+      }
+    ]
+  },
+  "quickstart": {
+    "title": {
+      "zh": "从完整输入开始",
+      "en": "Start with complete input"
+    },
+    "body": {
+      "zh": "需要 Go 1.24+。使用纯 Go SQLite 驱动。下方脚本只操作临时数据库，不修改被提及的 retry.go。",
+      "en": "Requires Go 1.24+ and uses a pure-Go SQLite driver. The script operates only on a temporary database and does not change the referenced retry.go."
+    },
+    "steps": [
+      {
+        "title": {
+          "zh": "安装",
+          "en": "Install"
+        },
+        "code": "git clone https://github.com/SuperMarioYL/omitledger.git\ncd omitledger\ngo build -o bin/omitledger ./cmd/omitledger"
+      },
+      {
+        "title": {
+          "zh": "运行自带示例",
+          "en": "Run the supplied example"
+        },
+        "code": "bash examples/presentation-demo.sh"
+      }
+    ]
+  },
+  "limitations": [
+    {
+      "zh": "记录是调用方自述；缺少条目不表示没有遗漏，reopened 不表示工作已完成。",
+      "en": "Records are caller statements: missing entries do not establish absence of omissions, and reopened does not mean completed."
+    },
+    {
+      "zh": "当前 mcp/report 占位命令会成功返回，但没有提供其描述的完整功能。",
+      "en": "The current mcp/report placeholders can exit successfully without providing the described full functionality."
+    }
+  ],
+  "footer": {
+    "tag": "0.1.0 · Go 1.24+ · MIT"
+  }
 }

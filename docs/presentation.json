@@ -1,0 +1,78 @@
+{
+  "name": "OmitLedger",
+  "tagline": "Keep a reason for omitted work.",
+  "architecture": {
+    "title": "OmitLedger / data flow",
+    "nodes": [
+      {
+        "title": "CLI record",
+        "detail": "Item / reason / file"
+      },
+      {
+        "title": "Ledger store",
+        "detail": "SQLite persistence"
+      },
+      {
+        "title": "Review list",
+        "detail": "Filter by status"
+      },
+      {
+        "title": "Reopen",
+        "detail": "Status and review note"
+      }
+    ],
+    "edges": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ]
+    ]
+  },
+  "process": {
+    "title": "OmitLedger / example workflow",
+    "steps": [
+      {
+        "title": "Record skipped test",
+        "detail": "A synthetic retry-path task"
+      },
+      {
+        "title": "Review the entry",
+        "detail": "Status open"
+      },
+      {
+        "title": "Request another pass",
+        "detail": "Status reopened"
+      }
+    ],
+    "result": "One omission changes from open to reopened while its reason remains available."
+  },
+  "integrations": {
+    "title": "OmitLedger / supported routes",
+    "items": [
+      {
+        "title": "CLI",
+        "detail": "init / add / list / reopen"
+      },
+      {
+        "title": "SQLite",
+        "detail": "Repository-local ledger"
+      },
+      {
+        "title": "Session variables",
+        "detail": "Run provenance"
+      },
+      {
+        "title": "Skill snippet",
+        "detail": "Caller guidance for recording"
+      }
+    ]
+  }
+}

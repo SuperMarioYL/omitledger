@@ -1,0 +1,38 @@
+{
+  "mode": "auto",
+  "id": "5673e6-936ae7-acd6f6-2afc8ff24a53",
+  "identity": "https://github.com/supermarioyl/omitledger",
+  "primary": "#5673e6",
+  "secondary": "#936ae7",
+  "highlight": "#acd6f6",
+  "dark": {
+    "bg": "#050812",
+    "panel": "#0c111f",
+    "code": "#0a0f1d",
+    "ink": "#eef7fd",
+    "muted": "#95a2c4",
+    "line": "#172041",
+    "primary": "#5774e6",
+    "secondary": "#936ae7",
+    "highlight": "#acd6f6",
+    "accent": "#5774e6",
+    "buttonStart": "#536edd",
+    "buttonEnd": "#8661d3",
+    "buttonText": "#ffffff"
+  },
+  "light": {
+    "bg": "#f9fafe",
+    "panel": "#f7f8fe",
+    "code": "#f3f5fd",
+    "ink": "#131a30",
+    "muted": "#556488",
+    "line": "#cbd4f7",
+    "primary": "#4f69d2",
+    "secondary": "#805cc8",
+    "highlight": "#5d7385",
+    "accent": "#4f69d2",
+    "buttonStart": "#536edd",
+    "buttonEnd": "#8661d3",
+    "buttonText": "#ffffff"
+  }
+}
