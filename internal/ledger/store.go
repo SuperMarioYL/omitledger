@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -271,6 +272,32 @@ func (s *Store) Resolve(id string) (Omission, error) {
 	}
 	o.Status = StatusResolved
 	return o, nil
+}
+
+// ReopenLogName is the re-injection log file, kept next to the ledger DB.
+// Every reopen appends one JSON line per re-request event; the agent skill
+// reads it at the next session start and re-requests the listed items.
+const ReopenLogName = "reopen.jsonl"
+
+// AppendReinject appends o as one JSON line to <ledger-dir>/reopen.jsonl and
+// returns the log path. The log is append-only history — one event per
+// re-request with its note, not latest state; a consumer wanting current
+// re-requests dedupes by id.
+func (s *Store) AppendReinject(o Omission) (string, error) {
+	line, err := json.Marshal(o)
+	if err != nil {
+		return "", fmt.Errorf("encode reopen record: %w", err)
+	}
+	path := filepath.Join(filepath.Dir(s.path), ReopenLogName)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return "", fmt.Errorf("open reopen log %s: %w", path, err)
+	}
+	defer f.Close()
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		return "", fmt.Errorf("append reopen record: %w", err)
+	}
+	return path, nil
 }
 
 // Counts returns open and total counts (for the init/status summary).

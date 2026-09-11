@@ -40,6 +40,7 @@ func init() {
 	rootCmd.AddCommand(reopenCmd)
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(reportCmd)
+	rootCmd.AddCommand(exportCmd)
 }
 
 // resolveStorePath picks the ledger location: explicit flag → env → repo-local default.

@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -190,6 +191,65 @@ func TestOpenExpandsTilde(t *testing.T) {
 	// A tilde store must not leave a literal "~" directory in the CWD.
 	if _, err := os.Stat("~"); err == nil {
 		t.Fatal("a literal ~ directory exists in the working directory")
+	}
+}
+
+func TestAppendReinject(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(filepath.Join(dir, "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	o1, err := s.Add(Omission{Item: "parser unit test", Reason: "r1", Category: "test"})
+	if err != nil {
+		t.Fatalf("add1: %v", err)
+	}
+	r1, err := s.Reopen(o1.ID, "needs the test")
+	if err != nil {
+		t.Fatalf("reopen1: %v", err)
+	}
+	path, err := s.AppendReinject(r1)
+	if err != nil {
+		t.Fatalf("append1: %v", err)
+	}
+	if want := filepath.Join(dir, ReopenLogName); path != want {
+		t.Fatalf("reinject path = %q, want %q", path, want)
+	}
+
+	// A second re-request appends a second line (append-only event log).
+	o2, err := s.Add(Omission{Item: "beta doc", Reason: "r2"})
+	if err != nil {
+		t.Fatalf("add2: %v", err)
+	}
+	r2, err := s.Reopen(o2.ID, "")
+	if err != nil {
+		t.Fatalf("reopen2: %v", err)
+	}
+	if _, err := s.AppendReinject(r2); err != nil {
+		t.Fatalf("append2: %v", err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read reopen log: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("reopen log has %d line(s), want 2:\n%s", len(lines), data)
+	}
+	var first Omission
+	if err := json.Unmarshal([]byte(lines[0]), &first); err != nil {
+		t.Fatalf("line 1 is not JSON: %v", err)
+	}
+	if first.ID != o1.ID || first.Item != "parser unit test" || first.ReopenNote != "needs the test" {
+		t.Fatalf("line 1 = %+v", first)
+	}
+	if first.ReopenedAt == nil {
+		t.Fatal("line 1 has no reopened_at")
+	}
+	if !strings.Contains(lines[0], `"reopened_at"`) {
+		t.Fatalf("line 1 lacks the reopened_at JSON key: %s", lines[0])
 	}
 }
 

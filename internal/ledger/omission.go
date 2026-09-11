@@ -69,27 +69,27 @@ const (
 type Omission struct {
 	// ID is a ULID (monotonic, time-ordered, 26 Crockford-base32 chars). It is
 	// assigned by the store at insert time; callers leave it empty.
-	ID string
+	ID string `json:"id"`
 	// SessionID is the agent run id (sourced from CLAUDE/Cursor env). "local"
 	// when no session context is available.
-	SessionID string
+	SessionID string `json:"session_id"`
 	// File is the target path, or "*" for repo-wide omissions. May be empty.
-	File string
+	File string `json:"file"`
 	// Item is what was omitted, e.g. "parser unit test".
-	Item string
+	Item string `json:"item"`
 	// Reason is the agent-stated reason AT decision time. The reason is the
 	// asset: it distinguishes "trivial getter, low risk" from a cut corner.
-	Reason string
+	Reason string `json:"reason"`
 	// Category buckets the omission (test | file | section | refactor | doc | log).
-	Category string
+	Category string `json:"category"`
 	// CreatedAt is when the omission was recorded (decision time).
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
 	// Status is open | reopened | resolved.
-	Status string
+	Status string `json:"status"`
 	// ReopenedAt is when the user re-requested the item, if any.
-	ReopenedAt *time.Time
+	ReopenedAt *time.Time `json:"reopened_at,omitempty"`
 	// ReopenNote is an optional user note attached on reopen.
-	ReopenNote string
+	ReopenNote string `json:"reopen_note,omitempty"`
 }
 
 // Validate returns an error if the record is missing the fields that make an
