@@ -9,7 +9,7 @@
 
 **把省略的事项、理由、文件与会话记录到本地台账，供审阅者决定哪些需要重新处理。**
 
-`v0.1.0` · `Go 1.24+` · [MIT](LICENSE)
+`v0.2.0` · `Go 1.24+` · [MIT](LICENSE)
 
 [Website](https://omitledger.lei6393.com) · [Demo record](docs/demo-results.json)
 

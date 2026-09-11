@@ -9,7 +9,7 @@
 
 **Record skipped items, reasons, files and sessions in a local ledger so reviewers can decide what needs another pass.**
 
-`v0.1.0` · `Go 1.24+` · [MIT](LICENSE)
+`v0.2.0` · `Go 1.24+` · [MIT](LICENSE)
 
 [Website](https://omitledger.lei6393.com) · [Demo record](docs/demo-results.json)
 

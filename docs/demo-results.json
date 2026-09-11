@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scope": "Real CLI add, list and reopen lifecycle in a temporary SQLite ledger, using a synthetic omitted test. No agent is run and no source file is changed.",
   "inputs": [
     {
@@ -10,7 +10,7 @@
   "steps": [
     {
       "command": "bash examples/presentation-demo.sh",
-      "output": "recorded omission 000T0ZPHK7EB5WN6SCHAH9546H\n  item:     retry-path test\n  file:     retry.go\n  category: test\n  reason:   deferred during initial implementation\n  session:  presentation-demo\n#  ID                          STATUS  CATEGORY  FILE      ITEM             REASON\n1  000T0ZPHK7EB5WN6SCHAH9546H  open    test      retry.go  retry-path test  deferred during initial implementation\n\n1 omission(s)\nreopened 000T0ZPHK7EB5WN6SCHAH9546H: retry-path test\n  note: cover the retry branch\n#  ID                          STATUS    CATEGORY  FILE      ITEM             REASON\n1  000T0ZPHK7EB5WN6SCHAH9546H  reopened  test      retry.go  retry-path test  deferred during initial implementation\n\n1 omission(s)\n",
+      "output": "recorded omission 000T13NRZXNVJG1RQ29SM26GND\n  item:     retry-path test\n  file:     retry.go\n  category: test\n  reason:   deferred during initial implementation\n  session:  presentation-demo\n#  ID                          STATUS  CATEGORY  FILE      ITEM             REASON\n1  000T13NRZXNVJG1RQ29SM26GND  open    test      retry.go  retry-path test  deferred during initial implementation\n\n1 omission(s)\nreopened 000T13NRZXNVJG1RQ29SM26GND: retry-path test\n  note: cover the retry branch\n#  ID                          STATUS    CATEGORY  FILE      ITEM             REASON\n1  000T13NRZXNVJG1RQ29SM26GND  reopened  test      retry.go  retry-path test  deferred during initial implementation\n\n1 omission(s)",
       "exit_code": 0
     }
   ]

@@ -21,10 +21,16 @@ corner.
 The agent skill snippet (skills/omit-ledger/SKILL.md) makes an agent call
 ` + "`omitledger add`" + ` the instant it deliberately skips something.`
 
+// version is the CLI version, surfaced by `omitledger --version`. It is
+// pinned to the repo-root VERSION file and the web/site.json
+// meta.content_version by TestVersionLockstep — bump all surfaces together.
+const version = "0.2.0"
+
 var rootCmd = &cobra.Command{
 	Use:           "omitledger",
 	Short:         "Ledger what your coding agent deliberately skipped",
 	Long:          longDesc,
+	Version:       version,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }

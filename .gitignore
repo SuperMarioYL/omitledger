@@ -22,3 +22,6 @@ CLAUDE.md
 .eval_*.yaml
 .build_metadata*.yaml
 .spawn_*
+
+# local build output (README quickstart builds here)
+/bin/
