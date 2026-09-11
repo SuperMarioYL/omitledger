@@ -134,3 +134,48 @@ func TestResolveRefLineAndID(t *testing.T) {
 		t.Fatal("unknown ref should error")
 	}
 }
+
+func TestListUnknownStatusErrors(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(filepath.Join(dir, "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	if _, err := s.Add(Omission{Item: "a", Reason: "r1"}); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	// A typo or wrong casing must be an error, never a silently empty list.
+	for _, bad := range []string{"bogus", "Open", "CLOSED"} {
+		if _, err := s.List(ListFilter{Status: bad}); err == nil {
+			t.Fatalf("List status %q: expected error, got rows", bad)
+		}
+	}
+	// The documented values still work, including the closed (not-open) view.
+	for _, ok := range []string{"", "open", "reopened", "resolved", "closed"} {
+		if _, err := s.List(ListFilter{Status: ok}); err != nil {
+			t.Fatalf("List status %q: %v", ok, err)
+		}
+	}
+}
+
+func TestListLimitAppliesAfterStatusFilter(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(filepath.Join(dir, "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	for _, item := range []string{"a", "b", "c"} {
+		if _, err := s.Add(Omission{Item: item, Reason: "r"}); err != nil {
+			t.Fatalf("add %s: %v", item, err)
+		}
+	}
+	limited, err := s.List(ListFilter{Limit: 2})
+	if err != nil {
+		t.Fatalf("list limited: %v", err)
+	}
+	if len(limited) != 2 || limited[0].Item != "a" || limited[1].Item != "b" {
+		t.Fatalf("limit = %+v", limited)
+	}
+}

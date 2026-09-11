@@ -132,33 +132,21 @@ type ListFilter struct {
 }
 
 // List returns omissions matching filter, oldest first (insertion order,
-// leveraging ULID time-ordering).
+// leveraging ULID time-ordering). Status filtering delegates to MatchesStatus
+// so the store and the CLI list view share one definition; the limit applies
+// after filtering (it caps the result set, not the scan).
 func (s *Store) List(f ListFilter) ([]Omission, error) {
+	if err := ValidateStatusFilter(f.Status); err != nil {
+		return nil, err
+	}
 	q := `SELECT id, session_id, file, item, reason, category, created_at, status, reopened_at, reopen_note
 FROM omissions`
-	var where []string
 	var args []any
-	if f.Status != "" {
-		if f.Status == "closed" {
-			where = append(where, "status != ?")
-			args = append(args, StatusOpen)
-		} else {
-			where = append(where, "status = ?")
-			args = append(args, f.Status)
-		}
-	}
 	if f.SessionID != "" {
-		where = append(where, "session_id = ?")
+		q += " WHERE session_id = ?"
 		args = append(args, f.SessionID)
 	}
-	if len(where) > 0 {
-		q += " WHERE " + joinStrings(where, " AND ")
-	}
 	q += " ORDER BY created_at ASC, id ASC"
-	if f.Limit > 0 {
-		q += " LIMIT ?"
-		args = append(args, f.Limit)
-	}
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list omissions: %w", err)
@@ -169,6 +157,12 @@ FROM omissions`
 		o, err := scanOmission(rows)
 		if err != nil {
 			return nil, err
+		}
+		if !MatchesStatus(o, f.Status) {
+			continue
+		}
+		if f.Limit > 0 && len(out) == f.Limit {
+			break
 		}
 		out = append(out, o)
 	}
@@ -336,16 +330,4 @@ func scanOmissionRow(row rowScanner) (Omission, error) {
 		}
 	}
 	return o, err
-}
-
-// joinStrings avoids importing strings just for Join in the query builder.
-func joinStrings(ss []string, sep string) string {
-	if len(ss) == 0 {
-		return ""
-	}
-	out := ss[0]
-	for _, s := range ss[1:] {
-		out += sep + s
-	}
-	return out
 }

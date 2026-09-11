@@ -10,6 +10,7 @@ package ledger
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -20,6 +21,36 @@ const (
 	StatusReopened = "reopened"
 	StatusResolved = "resolved"
 )
+
+// StatusClosed is a virtual filter value for `list --status closed`: every
+// record that is no longer open (reopened or resolved).
+const StatusClosed = "closed"
+
+// ValidateStatusFilter returns an error for a --status value the ledger does
+// not know. Unknown values must not silently render an empty ledger — a typo
+// like "Open" would be indistinguishable from "nothing recorded".
+func ValidateStatusFilter(status string) error {
+	switch status {
+	case "", StatusOpen, StatusReopened, StatusResolved, StatusClosed:
+		return nil
+	}
+	return fmt.Errorf("unknown status filter %q (want open, reopened, resolved, closed, or empty)", status)
+}
+
+// MatchesStatus reports whether o is shown by `list --status <status>`: empty
+// matches all; "closed" matches anything not open; anything else is an exact
+// status match. Single source of truth for status filtering — Store.List and
+// the CLI list view both delegate here.
+func MatchesStatus(o Omission, status string) bool {
+	switch status {
+	case "":
+		return true
+	case StatusClosed:
+		return o.Status != StatusOpen
+	default:
+		return o.Status == status
+	}
+}
 
 // Category buckets the kind of thing that was skipped. Free-form strings are
 // tolerated on read; these are the canonical values the agent skill emits.

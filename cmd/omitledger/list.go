@@ -27,11 +27,15 @@ why.`,
 			return die(err)
 		}
 		defer st.Close()
-		items, err := st.List(ledger.ListFilter{Status: listStatus})
+		all, err := st.List(ledger.ListFilter{})
 		if err != nil {
 			return die(err)
 		}
-		if len(items) == 0 {
+		rows, err := omissionRows(all, listStatus)
+		if err != nil {
+			return die(err)
+		}
+		if len(rows) == 0 {
 			if listStatus != "" {
 				fmt.Printf("no %s omissions recorded\n", listStatus)
 			} else {
@@ -39,8 +43,8 @@ why.`,
 			}
 			return nil
 		}
-		writeOmissionTable(os.Stdout, items)
-		fmt.Printf("\n%d omission(s)\n", len(items))
+		writeOmissionTable(os.Stdout, rows)
+		fmt.Printf("\n%d omission(s)\n", len(rows))
 		return nil
 	},
 }
@@ -49,14 +53,41 @@ func init() {
 	listCmd.Flags().StringVar(&listStatus, "status", "", "filter: open | reopened | resolved | closed (default: all)")
 }
 
+// row is one table row: the omission plus its ABSOLUTE 1-based position in
+// the ledger. The # column must stay directly usable with `reopen <line>`:
+// ResolveRef resolves a line number against the full ledger, so a filtered
+// view that renumbered from 1 would make `reopen 1` target the wrong record.
+type row struct {
+	num int
+	o   ledger.Omission
+}
+
+// omissionRows validates the status filter and selects the rows to display,
+// keeping each row's absolute ledger position. Filtering delegates to
+// ledger.MatchesStatus — the same single source Store.List uses.
+func omissionRows(all []ledger.Omission, status string) ([]row, error) {
+	if err := ledger.ValidateStatusFilter(status); err != nil {
+		return nil, err
+	}
+	var rows []row
+	for i, o := range all {
+		if ledger.MatchesStatus(o, status) {
+			rows = append(rows, row{num: i + 1, o: o})
+		}
+	}
+	return rows, nil
+}
+
 // writeOmissionTable renders the ledger as a fixed-width table. The leading
-// # column is the 1-based line number usable directly with `omitledger reopen`.
-func writeOmissionTable(w io.Writer, items []ledger.Omission) {
+// # column is the absolute 1-based ledger position usable directly with
+// `omitledger reopen` — under a --status filter too.
+func writeOmissionTable(w io.Writer, rows []row) {
 	tw := tabwriter.NewWriter(w, 0, 2, 2, ' ', 0)
 	fmt.Fprintln(tw, "#\tID\tSTATUS\tCATEGORY\tFILE\tITEM\tREASON")
-	for i, o := range items {
+	for _, r := range rows {
+		o := r.o
 		fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			i+1,
+			r.num,
 			o.ID,
 			o.Status,
 			nonEmpty(o.Category, "-"),
