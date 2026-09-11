@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver (no cgo → single static binary)
@@ -32,6 +33,7 @@ func Open(path string) (*Store, error) {
 	if path == "" {
 		path = DefaultStorePath
 	}
+	path = expandHomePath(path)
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("resolve store path: %w", err)
@@ -58,6 +60,20 @@ func Open(path string) (*Store, error) {
 
 // Path returns the absolute path of the ledger DB file.
 func (s *Store) Path() string { return s.path }
+
+// expandHomePath expands a leading "~" or "~/" to the user's home directory.
+// The documented global-ledger path (~/.omitledger/ledger.db via
+// OMITLEDGER_STORE) relies on this: without expansion the literal "~" becomes
+// a directory in the working directory and the ledger silently lands in the
+// wrong place. Other ~-prefixed forms (~user/…) are returned unchanged.
+func expandHomePath(p string) string {
+	if p == "~" || strings.HasPrefix(p, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, strings.TrimPrefix(p, "~"))
+		}
+	}
+	return p
+}
 
 // Close releases the database handle.
 func (s *Store) Close() error { return s.db.Close() }

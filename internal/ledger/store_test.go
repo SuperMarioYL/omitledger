@@ -1,7 +1,9 @@
 package ledger
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -156,6 +158,38 @@ func TestListUnknownStatusErrors(t *testing.T) {
 		if _, err := s.List(ListFilter{Status: ok}); err != nil {
 			t.Fatalf("List status %q: %v", ok, err)
 		}
+	}
+}
+
+func TestExpandHomePath(t *testing.T) {
+	t.Setenv("HOME", "/fake/home")
+	cases := []struct{ in, want string }{
+		{"~", "/fake/home"},
+		{"~/.omitledger/ledger.db", "/fake/home/.omitledger/ledger.db"},
+		{"relative/ledger.db", "relative/ledger.db"},
+		{"/abs/ledger.db", "/abs/ledger.db"},
+		{"~user/ledger.db", "~user/ledger.db"}, // only ~/ is documented
+	}
+	for _, c := range cases {
+		if got := expandHomePath(c.in); got != c.want {
+			t.Fatalf("expandHomePath(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestOpenExpandsTilde(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	s, err := Open("~/.omitledger/ledger.db")
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	if got := s.Path(); !strings.HasPrefix(got, os.Getenv("HOME")) || strings.Contains(got, "~") {
+		t.Fatalf("Path() = %q, want under $HOME with no literal ~", got)
+	}
+	// A tilde store must not leave a literal "~" directory in the CWD.
+	if _, err := os.Stat("~"); err == nil {
+		t.Fatal("a literal ~ directory exists in the working directory")
 	}
 }
 
