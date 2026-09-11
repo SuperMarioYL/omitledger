@@ -75,13 +75,18 @@ func nonEmpty(s, dflt string) string {
 	return s
 }
 
+// trunc shortens s to at most n runes, appending an ellipsis when it cuts.
+// It operates on runes, never bytes: byte slicing would split a multi-byte
+// UTF-8 rune mid-sequence and emit invalid UTF-8 (the ledger is zh-primary,
+// so CJK item/reason text is the common case, not the edge case).
 func trunc(s string, n int) string {
 	s = strings.TrimSpace(s)
-	if len(s) <= n {
+	runes := []rune(s)
+	if len(runes) <= n {
 		return s
 	}
 	if n <= 1 {
 		return "…"
 	}
-	return s[:n-1] + "…"
+	return string(runes[:n-1]) + "…"
 }
