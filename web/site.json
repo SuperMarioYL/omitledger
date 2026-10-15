@@ -117,15 +117,15 @@
           "en": "How it works"
         },
         "body": {
-          "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；当前命令入口中的 mcp 与 report 仍为占位。",
-          "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. The current mcp and report command entry points remain placeholders."
+          "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（交互式 TUI 仍为占位）。",
+          "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. mcp exposes the record_omission / list_omissions / reopen_omission tools over stdio (the interactive TUI remains a placeholder)."
         },
         "image": {
           "light": "/assets/presentation/architecture-light.svg",
           "dark": "/assets/presentation/architecture-dark.svg",
           "alt": {
-            "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；当前命令入口中的 mcp 与 report 仍为占位。",
-            "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. The current mcp and report command entry points remain placeholders."
+            "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（交互式 TUI 仍为占位）。",
+            "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. mcp exposes the record_omission / list_omissions / reopen_omission tools over stdio (the interactive TUI remains a placeholder)."
           },
           "mobile": {
             "light": "/assets/presentation/architecture-mobile-light.svg",
@@ -238,8 +238,8 @@
       "en": "Records are caller statements: missing entries do not establish absence of omissions, and reopened does not mean completed."
     },
     {
-      "zh": "当前 mcp/report 占位命令会成功返回，但没有提供其描述的完整功能。",
-      "en": "The current mcp/report placeholders can exit successfully without providing the described full functionality."
+      "zh": "`omitledger mcp` 提供三个 MCP 工具；交互式 TUI 查看器仍是占位命令，不提供交互界面。",
+      "en": "`omitledger mcp` serves the three MCP tools; the interactive TUI viewer is still a placeholder command without an interface."
     }
   ],
   "footer": {
