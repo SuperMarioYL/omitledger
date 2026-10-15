@@ -1,32 +1,37 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
+
+	mcpserver "github.com/SuperMarioYL/omitledger/internal/mcp"
 )
 
-// mcpCmd is the m2 milestone stub: native MCP server mode (record_omission,
-// list_omissions, reopen_omission tools over stdio) + interactive TUI viewer.
-// m1 ships the CLI + ledger only; this command is reserved so the help tree
-// advertises the roadmap without implementing it.
+// mcpCmd is the m2 milestone: native MCP server mode. It exposes the ledger
+// as record_omission / list_omissions / reopen_omission tools over stdio so
+// agents call the ledger directly instead of shelling out; the interactive
+// TUI viewer (internal/tui) remains the only stub surface.
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
-	Short: "(m2) Run as an MCP server over stdio [not yet implemented]",
-	Long: `Run omitledger as a native Model Context Protocol server, exposing
-record_omission / list_omissions / reopen_omission tools so agents call the
-ledger directly instead of shelling out, plus an interactive TUI viewer with
-cursor-selectable reopen.
+	Short: "Run as an MCP server over stdio (record_omission / list_omissions / reopen_omission)",
+	Long: `Run omitledger as a native Model Context Protocol server, exposing the
+ledger as tools agents call directly instead of shelling out:
 
-This lands in the m2 milestone. For now, record omissions via the CLI:
+  record_omission  — record a deliberate omission with the agent-stated reason
+  list_omissions   — list recorded omissions, oldest first (JSON array)
+  reopen_omission  — re-request an omission; appends to .omitledger/reopen.jsonl
 
-  omitledger add --item "..." --reason "..." --file ... --category ...
-  omitledger list
-  omitledger reopen <id>`,
+The server speaks MCP over stdin/stdout, so point your MCP client at:
+
+  omitledger mcp
+
+and it serves the ledger at the resolved store path (--store / OMITLEDGER_STORE),
+exactly like the CLI commands. The interactive TUI viewer is not implemented yet.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Fprintln(os.Stderr, "omitledger: `mcp` (MCP server mode + TUI viewer) is not implemented in m1 — coming in m2.")
-		fmt.Fprintln(os.Stderr, "for now, use `omitledger add`, `omitledger list`, `omitledger reopen`.")
-		return nil
+		st, err := openStore()
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return mcpserver.New(st, version).Serve(cmd.Context())
 	},
 }

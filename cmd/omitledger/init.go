@@ -16,12 +16,12 @@ see how to install the agent skill snippet.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		store, err := openStore()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		defer store.Close()
 		open, total, err := store.Counts()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		fmt.Printf("omitledger ledger ready: %s\n", store.Path())
 		fmt.Printf("  %d omission(s) recorded, %d open\n", total, open)

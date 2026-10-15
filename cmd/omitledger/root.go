@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -24,7 +23,7 @@ The agent skill snippet (skills/omit-ledger/SKILL.md) makes an agent call
 // version is the CLI version, surfaced by `omitledger --version`. It is
 // pinned to the repo-root VERSION file and the web/site.json
 // meta.content_version by TestVersionLockstep — bump all surfaces together.
-const version = "0.2.0"
+const version = "0.3.0"
 
 var rootCmd = &cobra.Command{
 	Use:           "omitledger",
@@ -66,19 +65,6 @@ func openStore() (*ledger.Store, error) {
 	return ledger.Open(resolveStorePath())
 }
 
-// sessionID returns the agent run id from the environment, or "local".
-func sessionID() string {
-	for _, k := range []string{"OMITLEDGER_SESSION", "CLAUDE_SESSION_ID", "CURSOR_SESSION_ID"} {
-		if v := os.Getenv(k); v != "" {
-			return v
-		}
-	}
-	return "local"
-}
-
-// die prints an error to stderr in a consistent shape and returns it so RunE
-// can `return die(err)` (cobra prints nothing thanks to SilenceErrors).
-func die(err error) error {
-	fmt.Fprintf(os.Stderr, "omitledger: %v\n", err)
-	return err
-}
+// The root command runs with SilenceErrors: errors are printed exactly once
+// by run() in main.go — the single print point for both cobra-raised errors
+// (unknown command, unknown flag) and errors returned from a RunE.

@@ -9,7 +9,7 @@
 
 **把省略的事项、理由、文件与会话记录到本地台账，供审阅者决定哪些需要重新处理。**
 
-`v0.2.0` · `Go 1.24+` · [MIT](LICENSE)
+`v0.3.0` · `Go 1.24+` · [MIT](LICENSE)
 
 [Website](https://omitledger.lei6393.com) · [Demo record](docs/demo-results.json)
 
@@ -23,10 +23,10 @@
   <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="assets/presentation/architecture-mobile-dark.svg">
   <source media="(max-width: 640px)" srcset="assets/presentation/architecture-mobile-light.svg">
   <source media="(prefers-color-scheme: dark)" srcset="assets/presentation/architecture-dark.svg">
-  <img src="assets/presentation/architecture-light.svg" width="1000" alt="Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到 .omitledger/reopen.jsonl 供下一会话重注入；mcp（MCP server + TUI）仍为占位。">
+  <img src="assets/presentation/architecture-light.svg" width="1000" alt="Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到 .omitledger/reopen.jsonl 供下一会话重注入；mcp 经 stdio 暴露 record/list/reopen 三个 MCP 工具（TUI 仍为占位）。">
 </picture>
 
-Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到 `.omitledger/reopen.jsonl` 供下一会话重注入，不会自动执行被省略的任务；mcp（MCP server + TUI）仍为占位。
+Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到 `.omitledger/reopen.jsonl` 供下一会话重注入，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（TUI 仍为占位）。
 
 源码入口：[cmd/omitledger/root.go](cmd/omitledger/root.go) · [cmd/omitledger/add.go](cmd/omitledger/add.go) · [cmd/omitledger/list.go](cmd/omitledger/list.go) · [cmd/omitledger/reopen.go](cmd/omitledger/reopen.go) · [cmd/omitledger/report.go](cmd/omitledger/report.go) · [cmd/omitledger/export.go](cmd/omitledger/export.go) · [cmd/omitledger/mcp.go](cmd/omitledger/mcp.go) · [internal/ledger/store.go](internal/ledger/store.go)
 
@@ -60,6 +60,7 @@ bash examples/presentation-demo.sh
 ./bin/omitledger report                      # 会话后 markdown 摘要（按类别分组 + 重请求清单）
 ./bin/omitledger report --session <id>       # 只汇总某个会话
 ./bin/omitledger export json > omissions.json  # CI merge-gate 用的 JSON 导出
+./bin/omitledger mcp                        # MCP server（stdio）：record_omission / list_omissions / reopen_omission
 ```
 `--item` 与 `--reason` 必填。类别约定为 test/file/section/refactor/doc/log，仓库级条目可用 `--file "*"`。reopen 可接受稳定 ID 或 # 列行号；筛选视图（如 `--status open`）中的行号同样是全量台账位置，可直接用于 reopen。
 
@@ -115,10 +116,10 @@ reopened 000T0ZPHK7EB5WN6SCHAH9546H: retry-path test
 
 ## 路线图与范围
 
-当前可用入口为 init/add/list/reopen/report/export，reopen 经 `.omitledger/reopen.jsonl` 在下一会话重注入。MCP server、TUI 查看器与团队聚合仍未实现，不能因仓库存在内部模块就视为 CLI 已支持。
+当前可用入口为 init/add/list/reopen/report/export/mcp，reopen 经 `.omitledger/reopen.jsonl` 在下一会话重注入。`omitledger mcp` 在 stdio 上提供原生 MCP server；交互式 TUI 查看器与团队聚合仍未实现，不能因仓库存在内部模块就视为 CLI 已支持。
 
 - 记录是调用方自述；缺少条目不表示没有遗漏，reopened 不表示工作已完成。
-- mcp 占位命令会成功返回，但没有提供其描述的完整功能。
+- `omitledger mcp` 提供三个 MCP 工具；交互式 TUI 查看器仍是占位命令，不提供交互界面。
 
 ![Terminal recording](assets/demo.gif) · [Recording script](docs/demo.tape)
 

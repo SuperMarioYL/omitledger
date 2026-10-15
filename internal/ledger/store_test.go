@@ -2,10 +2,12 @@ package ledger
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStoreAddListReopen(t *testing.T) {
@@ -271,5 +273,138 @@ func TestListLimitAppliesAfterStatusFilter(t *testing.T) {
 	}
 	if len(limited) != 2 || limited[0].Item != "a" || limited[1].Item != "b" {
 		t.Fatalf("limit = %+v", limited)
+	}
+}
+
+// m9: "oldest first" must follow TIME, not the RFC3339Nano TEXT column — the
+// variable-length fraction makes byte order wrong for sub-second timestamps.
+func TestListPreservesInsertionOrderAcrossFractionDigits(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	base := time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+	// ".9Z" (1 fraction digit) is stored before ".91Z" (2 digits); TEXT order
+	// would put the later record first because 'Z' > '1'.
+	first, err := s.Add(Omission{Item: "added FIRST", Reason: "r", CreatedAt: base.Add(900 * time.Millisecond)})
+	if err != nil {
+		t.Fatalf("add first: %v", err)
+	}
+	second, err := s.Add(Omission{Item: "added SECOND", Reason: "r", CreatedAt: base.Add(910 * time.Millisecond)})
+	if err != nil {
+		t.Fatalf("add second: %v", err)
+	}
+	got, err := s.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(got) != 2 || got[0].ID != first.ID || got[1].ID != second.ID {
+		t.Fatalf("List broke insertion order: got [%s %s], want FIRST then SECOND", got[0].Item, got[1].Item)
+	}
+}
+
+func TestListOrderByTimeNotText(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	base := time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+	// Chronological order 100ms < 120ms < 123ms; the stored TEXT strings
+	// ("…0.1Z", "…0.12Z", "…0.123Z") sort in the exact reverse byte order.
+	for i, ms := range []time.Duration{100, 120, 123} {
+		if _, err := s.Add(Omission{Item: fmt.Sprintf("rec-%d", i), Reason: "r", CreatedAt: base.Add(ms * time.Millisecond)}); err != nil {
+			t.Fatalf("add %d: %v", i, err)
+		}
+	}
+	got, err := s.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	want := []string{"rec-0", "rec-1", "rec-2"}
+	for i, w := range want {
+		if got[i].Item != w {
+			t.Fatalf("List[%d] = %s, want %s (order must follow time, not created_at TEXT)", i, got[i].Item, w)
+		}
+	}
+}
+
+// The # column and `reopen <line>` resolve through List order, so the index
+// view must agree with the sorted view on the same shuffled ledger.
+func TestGetByIndexMatchesListOrder(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	base := time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+	items := []struct {
+		item string
+		at   time.Duration
+	}{{"earliest", 100}, {"middle", 120}, {"latest", 123}}
+	for _, it := range items {
+		if _, err := s.Add(Omission{Item: it.item, Reason: "r", CreatedAt: base.Add(it.at * time.Millisecond)}); err != nil {
+			t.Fatalf("add %s: %v", it.item, err)
+		}
+	}
+	for n, want := range []string{"earliest", "middle", "latest"} {
+		o, err := s.GetByIndex(n + 1)
+		if err != nil {
+			t.Fatalf("GetByIndex(%d): %v", n+1, err)
+		}
+		if o.Item != want {
+			t.Fatalf("GetByIndex(%d) = %s, want %s", n+1, o.Item, want)
+		}
+	}
+	id, err := s.ResolveRef("3")
+	if err != nil {
+		t.Fatalf("ResolveRef(3): %v", err)
+	}
+	if o, err := s.Get(id); err != nil || o.Item != "latest" {
+		t.Fatalf("ResolveRef(3) -> %s (err %v), want latest", o.Item, err)
+	}
+}
+
+// m11: the store path is spliced into a file: URI — '?', '#' and '%' are
+// filesystem-legal and must round-trip instead of being parsed as query or
+// fragment separators (which silently relocated the ledger).
+func TestOpenSpecialCharPathRoundTrips(t *testing.T) {
+	for _, name := range []string{"weird?name", "weird#name", "weird%20name"} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			want := filepath.Join(dir, name, "ledger.db")
+			s, err := Open(want)
+			if err != nil {
+				t.Fatalf("open: %v", err)
+			}
+			defer s.Close()
+			if s.Path() != want {
+				t.Fatalf("Store.Path() = %s, want %s", s.Path(), want)
+			}
+			added, err := s.Add(Omission{Item: "round trip", Reason: "r"})
+			if err != nil {
+				t.Fatalf("add: %v", err)
+			}
+			if _, err := s.Get(added.ID); err != nil {
+				t.Fatalf("get after add: %v", err)
+			}
+			if _, err := os.Stat(want); err != nil {
+				t.Fatalf("ledger DB not at the requested path: %v", err)
+			}
+			// Re-open: the data must be found through the same path.
+			s2, err := Open(want)
+			if err != nil {
+				t.Fatalf("reopen: %v", err)
+			}
+			defer s2.Close()
+			got, err := s2.List(ListFilter{})
+			if err != nil {
+				t.Fatalf("list after reopen: %v", err)
+			}
+			if len(got) != 1 || got[0].Item != "round trip" {
+				t.Fatalf("reopened ledger = %+v, want the stored record", got)
+			}
+		})
 	}
 }

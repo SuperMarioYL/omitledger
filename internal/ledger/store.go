@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +45,16 @@ func Open(path string) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("create ledger dir %s: %w", dir, err)
 	}
-	dsn := "file:" + abs + "?_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)"
+	// The path is percent-encoded into the file: URI (RFC 3986): SQLite parses
+	// the DSN as a URI (SQLITE_OPEN_URI) and splits it at the first "?" / "#",
+	// so a raw path containing either would silently relocate the ledger into
+	// a truncated file. url.URL escapes those characters and SQLite decodes
+	// them back, so every filesystem-legal path round-trips.
+	dsn := (&url.URL{
+		Scheme:   "file",
+		Path:     abs,
+		RawQuery: "_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)",
+	}).String()
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open ledger %s: %w", abs, err)
@@ -148,10 +159,17 @@ type ListFilter struct {
 	Limit     int
 }
 
-// List returns omissions matching filter, oldest first (insertion order,
-// leveraging ULID time-ordering). Status filtering delegates to MatchesStatus
-// so the store and the CLI list view share one definition; the limit applies
-// after filtering (it caps the result set, not the scan).
+// List returns omissions matching filter, oldest first (insertion order).
+// Status filtering delegates to MatchesStatus so the store and the CLI list
+// view share one definition; the limit applies after filtering (it caps the
+// result set, not the scan).
+//
+// "Oldest first" is owned here, in Go: created_at is stored as RFC3339Nano
+// TEXT whose variable-length fraction makes SQL TEXT ordering wrong for
+// sub-second timestamps ("…0.91Z" sorts before "…0.9Z" byte-wise). Rows are
+// scanned in ULID order (time-ordered at ms precision) and stable-sorted by
+// parsed time with the ID as tie-break — exact insertion order, no schema
+// change and no migration for ledgers written by earlier versions.
 func (s *Store) List(f ListFilter) ([]Omission, error) {
 	if err := ValidateStatusFilter(f.Status); err != nil {
 		return nil, err
@@ -163,7 +181,7 @@ FROM omissions`
 		q += " WHERE session_id = ?"
 		args = append(args, f.SessionID)
 	}
-	q += " ORDER BY created_at ASC, id ASC"
+	q += " ORDER BY id ASC"
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list omissions: %w", err)
@@ -183,7 +201,16 @@ FROM omissions`
 		}
 		out = append(out, o)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if !out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].CreatedAt.Before(out[j].CreatedAt)
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out, nil
 }
 
 // Get returns a single omission by ID.

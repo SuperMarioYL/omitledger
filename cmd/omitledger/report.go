@@ -32,12 +32,12 @@ Prints to stdout by default; --out writes the report to a file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := openStore()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		defer st.Close()
 		items, err := st.List(ledger.ListFilter{SessionID: reportSession})
 		if err != nil {
-			return die(err)
+			return err
 		}
 		if len(items) == 0 {
 			fmt.Println("no omissions recorded yet — run `omitledger add` when your agent skips something")
@@ -45,11 +45,11 @@ Prints to stdout by default; --out writes the report to a file.`,
 		}
 		var buf bytes.Buffer
 		if err := report.Markdown(&buf, items); err != nil {
-			return die(err)
+			return err
 		}
 		if reportOut != "" {
 			if err := os.WriteFile(reportOut, buf.Bytes(), 0o644); err != nil {
-				return die(fmt.Errorf("write report %s: %w", reportOut, err))
+				return fmt.Errorf("write report %s: %w", reportOut, err)
 			}
 			fmt.Printf("report written to %s\n", reportOut)
 			return nil

@@ -27,16 +27,16 @@ start of the next session to re-request it.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := openStore()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		defer st.Close()
 		id, err := st.ResolveRef(args[0])
 		if err != nil {
-			return die(err)
+			return err
 		}
 		o, err := st.Reopen(id, reopenNote)
 		if err != nil {
-			return die(err)
+			return err
 		}
 		// The ledger record is already reopened; a failed re-injection
 		// append must not undo it or lie about the reopen — warn and go on.

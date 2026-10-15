@@ -29,7 +29,7 @@ ledger a queryable audit surface instead of a lost chat message.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := openStore()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		defer st.Close()
 		o := ledger.Omission{
@@ -37,11 +37,11 @@ ledger a queryable audit surface instead of a lost chat message.`,
 			Reason:    addReason,
 			File:      addFile,
 			Category:  addCategory,
-			SessionID: sessionID(),
+			SessionID: ledger.SessionID(),
 		}
 		stored, err := st.Add(o)
 		if err != nil {
-			return die(err)
+			return err
 		}
 		fmt.Printf("recorded omission %s\n", stored.ID)
 		fmt.Printf("  item:     %s\n", stored.Item)

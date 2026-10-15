@@ -14,6 +14,8 @@ omitledger add --item "<what you skipped>" --reason "<why, at decision time>" --
 - `omitledger add --item "parser unit test" --reason "trivial getter, low risk" --file parser.go --category test`
 - `omitledger add --item "retry-path error log" --reason "rare branch, deferred to follow-up" --file retry.go --category log`
 
+If your host runs MCP servers over stdio, `omitledger mcp` exposes the same ledger natively as the record_omission / list_omissions / reopen_omission tools — use it instead of shelling out.
+
 The user reviews with `omitledger list` and re-requests an item with `omitledger reopen <id-or-line>`.
 
 At the START of every session, check whether the user re-requested anything:

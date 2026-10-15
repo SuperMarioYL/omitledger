@@ -37,16 +37,16 @@ Only "json" is supported. Filters mirror ` + "`list`" + `: --status
 			format = args[0]
 		}
 		if format != "json" {
-			return die(fmt.Errorf("unknown export format %q (only json is supported)", format))
+			return fmt.Errorf("unknown export format %q (only json is supported)", format)
 		}
 		st, err := openStore()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		defer st.Close()
 		items, err := st.List(ledger.ListFilter{Status: exportStatus, SessionID: exportSession})
 		if err != nil {
-			return die(err)
+			return err
 		}
 		if items == nil {
 			items = []ledger.Omission{} // render [] instead of null on an empty ledger

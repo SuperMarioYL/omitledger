@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0] — 2026-10-16
+### Fixed — three verified defects from the v0.2.0 source
+- The ledger no longer mis-orders records added within the same second: `Store.List` ordered by the RFC3339Nano TEXT column, whose variable-length fraction sorts byte-wise ("…0.91Z" sorts before "…0.9Z"), so insertion order — and the `#` line column and `reopen <line>` resolution derived from it — could silently target the wrong record. "Oldest first" now has one owner: rows are stable-sorted by parsed time with the ULID as tie-break. No schema change; existing ledgers keep working and now order correctly.
+- The CLI no longer fails silently: the root command runs with `SilenceErrors`, so an unknown command (`omitledger lst`) or unknown flag exited 1 with zero output. Errors now print exactly once from a single choke point in `main`, in the documented `omitledger: <message>` shape, for cobra-raised and RunE errors alike. Exit codes are unchanged.
+- A `?`, `#` or `%` in the `--store` / `OMITLEDGER_STORE` path no longer silently relocates the ledger: the raw path was spliced into a SQLite URI DSN, so SQLite parsed the tail as query/fragment and created the DB in a truncated file (repro: `…/weird?name/ledger.db` landed in `…/weird` with exit 0). The DSN is now built with `net/url` percent-encoding, which SQLite decodes back — every filesystem-legal path round-trips to the requested location.
+
+### Added — m2: native MCP server
+- `omitledger mcp` is real: a native MCP server over stdio exposing `record_omission` / `list_omissions` / `reopen_omission`, built on the already-pinned `modelcontextprotocol/go-sdk`, so agents call the ledger directly instead of shelling out. `reopen_omission` keeps CLI parity (ULID or `#` line ref, note, reopen.jsonl re-injection event). Session provenance resolves through `ledger.SessionID()` — one owner shared with the CLI.
+
+### Changed
+- The interactive TUI viewer is now the only stub surface; the MCP server it was reserved alongside has shipped.
+- CLI error output has a single print point (`main`); the `die()` helper is gone. No exit-code changes.
 ## [0.2.0] — 2026-09-11
 ### Fixed — three verified defects from the v0.1.0 source
 - `list` no longer corrupts CJK item/reason text: `trunc()` sliced bytes and split multi-byte UTF-8 runes mid-sequence, so any Chinese item or reason over 48 bytes (~17 CJK chars) rendered with U+FFFD replacement characters on the main list view. Truncation is now rune-based and the table output is always valid UTF-8.
@@ -30,3 +42,5 @@
 ### Reserved (stubs present, not implemented in m1)
 - `omitledger mcp` — native MCP server mode (`record_omission` / `list_omissions` / `reopen_omission` over stdio) + interactive TUI viewer (m2).
 - ~~`omitledger report` — post-session markdown report + `.omitledger/reopen.jsonl` re-injection + JSON export for a CI merge-gate (m3).~~ — shipped in 0.2.0.
+
+[0.3.0]: https://github.com/SuperMarioYL/omitledger/compare/v0.2.0...v0.3.0

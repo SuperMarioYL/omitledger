@@ -48,3 +48,23 @@ func isValidCrockford(b byte) bool {
 	}
 	return false
 }
+
+// Session provenance has one owner: the CLI add path and the MCP
+// record_omission tool both resolve through SessionID.
+func TestSessionIDFromEnv(t *testing.T) {
+	for _, key := range []string{"OMITLEDGER_SESSION", "CLAUDE_SESSION_ID", "CURSOR_SESSION_ID"} {
+		t.Setenv(key, "")
+	}
+	if got := SessionID(); got != "local" {
+		t.Fatalf("SessionID() with no env = %q, want local", got)
+	}
+	t.Setenv("OMITLEDGER_SESSION", "s-explicit")
+	if got := SessionID(); got != "s-explicit" {
+		t.Fatalf("SessionID() = %q, want s-explicit", got)
+	}
+	t.Setenv("OMITLEDGER_SESSION", "")
+	t.Setenv("CLAUDE_SESSION_ID", "s-claude")
+	if got := SessionID(); got != "s-claude" {
+		t.Fatalf("SessionID() = %q, want s-claude (first non-empty wins)", got)
+	}
+}

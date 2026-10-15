@@ -9,7 +9,7 @@
 
 **Record skipped items, reasons, files and sessions in a local ledger so reviewers can decide what needs another pass.**
 
-`v0.2.0` · `Go 1.24+` · [MIT](LICENSE)
+`v0.3.0` · `Go 1.24+` · [MIT](LICENSE)
 
 [Website](https://omitledger.lei6393.com) · [Demo record](docs/demo-results.json)
 
@@ -23,10 +23,10 @@ During review, completed changes are visible while deliberately omitted work can
   <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="assets/presentation/architecture-mobile-dark.svg">
   <source media="(max-width: 640px)" srcset="assets/presentation/architecture-mobile-light.svg">
   <source media="(prefers-color-scheme: dark)" srcset="assets/presentation/architecture-dark.svg">
-  <img src="assets/presentation/architecture-light.svg" width="1000" alt="The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to .omitledger/reopen.jsonl for reinjection into the next session. The mcp command (MCP server + TUI) remains a placeholder.">
+  <img src="assets/presentation/architecture-light.svg" width="1000" alt="The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to .omitledger/reopen.jsonl for reinjection into the next session. The mcp command serves record/list/reopen as MCP tools over stdio (the TUI remains a placeholder).">
 </picture>
 
-The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to `.omitledger/reopen.jsonl` for reinjection into the next session; it does not execute omitted work. The mcp command (MCP server + TUI) remains a placeholder.
+The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to `.omitledger/reopen.jsonl` for reinjection into the next session; it does not execute omitted work. The mcp command exposes the record_omission / list_omissions / reopen_omission tools over stdio; the TUI remains a placeholder.
 
 Source entry points: [cmd/omitledger/root.go](cmd/omitledger/root.go) · [cmd/omitledger/add.go](cmd/omitledger/add.go) · [cmd/omitledger/list.go](cmd/omitledger/list.go) · [cmd/omitledger/reopen.go](cmd/omitledger/reopen.go) · [cmd/omitledger/report.go](cmd/omitledger/report.go) · [cmd/omitledger/export.go](cmd/omitledger/export.go) · [cmd/omitledger/mcp.go](cmd/omitledger/mcp.go) · [internal/ledger/store.go](internal/ledger/store.go)
 
@@ -60,6 +60,7 @@ Complete inputs and execution steps are included in the commands above and the [
 ./bin/omitledger report                        # post-session markdown summary (grouped by category + re-requested list)
 ./bin/omitledger report --session <id>         # summarize one session only
 ./bin/omitledger export json > omissions.json  # JSON export for a CI merge-gate
+./bin/omitledger mcp                          # MCP server (stdio): record_omission / list_omissions / reopen_omission
 ```
 `--item` and `--reason` are required. Conventional categories are test/file/section/refactor/doc/log; repository-wide items can use `--file "*"`. reopen accepts a stable ID or the # row number; filtered views (e.g. `--status open`) also number rows by absolute ledger position, so the number shown can be used with reopen directly.
 
@@ -115,10 +116,10 @@ Ledger location precedence is `--store` > `OMITLEDGER_STORE` > `.omitledger/ledg
 
 ## Roadmap and scope
 
-Current usable entry points are init/add/list/reopen/report/export, and reopen reinjects into the next session via `.omitledger/reopen.jsonl`. The MCP server, the TUI viewer and team aggregation are still unwired; internal modules alone do not establish CLI support.
+Current usable entry points are init/add/list/reopen/report/export/mcp, and reopen reinjects into the next session via `.omitledger/reopen.jsonl`. `omitledger mcp` serves a native MCP server over stdio; the interactive TUI viewer and team aggregation are still unwired, and internal modules alone do not establish CLI support.
 
 - Records are caller statements: missing entries do not establish absence of omissions, and reopened does not mean completed.
-- The mcp placeholder can exit successfully without providing the described full functionality.
+- `omitledger mcp` serves the three MCP tools; the interactive TUI viewer is still a placeholder command without an interface.
 
 ![Terminal recording](assets/demo.gif) · [Recording script](docs/demo.tape)
 

@@ -24,16 +24,16 @@ why.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := openStore()
 		if err != nil {
-			return die(err)
+			return err
 		}
 		defer st.Close()
 		all, err := st.List(ledger.ListFilter{})
 		if err != nil {
-			return die(err)
+			return err
 		}
 		rows, err := omissionRows(all, listStatus)
 		if err != nil {
-			return die(err)
+			return err
 		}
 		if len(rows) == 0 {
 			if listStatus != "" {

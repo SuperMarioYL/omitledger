@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 )
@@ -90,6 +91,19 @@ type Omission struct {
 	ReopenedAt *time.Time `json:"reopened_at,omitempty"`
 	// ReopenNote is an optional user note attached on reopen.
 	ReopenNote string `json:"reopen_note,omitempty"`
+}
+
+// SessionID returns the agent run id from the environment, or "local" when no
+// session context is available. Single source for session provenance: the CLI
+// add path and the MCP record_omission tool both resolve sessions here, so the
+// env contract has one owner.
+func SessionID() string {
+	for _, k := range []string{"OMITLEDGER_SESSION", "CLAUDE_SESSION_ID", "CURSOR_SESSION_ID"} {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+	}
+	return "local"
 }
 
 // Validate returns an error if the record is missing the fields that make an
