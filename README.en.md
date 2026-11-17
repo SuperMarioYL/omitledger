@@ -9,7 +9,7 @@
 
 **Record skipped items, reasons, files and sessions in a local ledger so reviewers can decide what needs another pass.**
 
-`v0.3.0` · `Go 1.24+` · [MIT](LICENSE)
+`v0.4.0` · `Go 1.24+` · [MIT](LICENSE)
 
 [Website](https://omitledger.lei6393.com) · [Demo record](docs/demo-results.json)
 
@@ -23,12 +23,12 @@ During review, completed changes are visible while deliberately omitted work can
   <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="assets/presentation/architecture-mobile-dark.svg">
   <source media="(max-width: 640px)" srcset="assets/presentation/architecture-mobile-light.svg">
   <source media="(prefers-color-scheme: dark)" srcset="assets/presentation/architecture-dark.svg">
-  <img src="assets/presentation/architecture-light.svg" width="1000" alt="The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to .omitledger/reopen.jsonl for reinjection into the next session. The mcp command serves record/list/reopen as MCP tools over stdio (the TUI remains a placeholder).">
+  <img src="assets/presentation/architecture-light.svg" width="1000" alt="The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to reopen.jsonl beside the ledger (default .omitledger/reopen.jsonl; `omitledger reopen-log` prints the actual path) for reinjection into the next session. The mcp command serves record/list/reopen as MCP tools over stdio (the TUI remains a placeholder).">
 </picture>
 
-The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to `.omitledger/reopen.jsonl` for reinjection into the next session; it does not execute omitted work. The mcp command exposes the record_omission / list_omissions / reopen_omission tools over stdio; the TUI remains a placeholder.
+The Cobra CLI maps add/list/reopen/report/export to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends the record to `reopen.jsonl` beside the ledger (default `.omitledger/reopen.jsonl`; `omitledger reopen-log` prints the actual path) for reinjection into the next session; it does not execute omitted work. The mcp command exposes the record_omission / list_omissions / reopen_omission tools over stdio; the TUI remains a placeholder.
 
-Source entry points: [cmd/omitledger/root.go](cmd/omitledger/root.go) · [cmd/omitledger/add.go](cmd/omitledger/add.go) · [cmd/omitledger/list.go](cmd/omitledger/list.go) · [cmd/omitledger/reopen.go](cmd/omitledger/reopen.go) · [cmd/omitledger/report.go](cmd/omitledger/report.go) · [cmd/omitledger/export.go](cmd/omitledger/export.go) · [cmd/omitledger/mcp.go](cmd/omitledger/mcp.go) · [internal/ledger/store.go](internal/ledger/store.go)
+Source entry points: [cmd/omitledger/root.go](cmd/omitledger/root.go) · [cmd/omitledger/add.go](cmd/omitledger/add.go) · [cmd/omitledger/list.go](cmd/omitledger/list.go) · [cmd/omitledger/reopen.go](cmd/omitledger/reopen.go) · [cmd/omitledger/reopenlog.go](cmd/omitledger/reopenlog.go) · [cmd/omitledger/report.go](cmd/omitledger/report.go) · [cmd/omitledger/export.go](cmd/omitledger/export.go) · [cmd/omitledger/mcp.go](cmd/omitledger/mcp.go) · [internal/ledger/store.go](internal/ledger/store.go)
 
 ## Install
 
@@ -57,12 +57,13 @@ Complete inputs and execution steps are included in the commands above and the [
 ./bin/omitledger add --item "API example" --reason "deferred for review" --file README.md --category doc
 ./bin/omitledger list --status open
 ./bin/omitledger reopen 1 --note "include a complete request"
+./bin/omitledger reopen-log                   # print the re-injection log path (follows --store / OMITLEDGER_STORE)
 ./bin/omitledger report                        # post-session markdown summary (grouped by category + re-requested list)
 ./bin/omitledger report --session <id>         # summarize one session only
 ./bin/omitledger export json > omissions.json  # JSON export for a CI merge-gate
 ./bin/omitledger mcp                          # MCP server (stdio): record_omission / list_omissions / reopen_omission
 ```
-`--item` and `--reason` are required. Conventional categories are test/file/section/refactor/doc/log; repository-wide items can use `--file "*"`. reopen accepts a stable ID or the # row number; filtered views (e.g. `--status open`) also number rows by absolute ledger position, so the number shown can be used with reopen directly.
+`--item` and `--reason` are required. Conventional categories are test/file/section/refactor/doc/log; repository-wide items can use `--file "*"`. reopen accepts a stable ID or the # row number; filtered views (e.g. `--status open`) also number rows by absolute ledger position, so the number shown can be used with reopen directly. `reopen-log` prints the re-injection log's absolute path: the log always sits beside the ledger DB, so after a --store / OMITLEDGER_STORE override it is not `.omitledger/reopen.jsonl`.
 
 ## Recorded demo
 
@@ -112,11 +113,11 @@ Workflows can explicitly call the CLI or use the supplied skill snippet as guida
 
 ## Configuration
 
-Ledger location precedence is `--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db` (a leading `~/` is expanded). Session precedence is `OMITLEDGER_SESSION`, CLAUDE_SESSION_ID, CURSOR_SESSION_ID, then local. SQLite uses WAL and a 5000ms busy timeout. Every reopen appends one JSON re-request event to `.omitledger/reopen.jsonl` in the ledger directory (append-only); the skill snippet reads it at the start of the next session and re-requests the listed items.
+Ledger location precedence is `--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db` (a leading `~/` is expanded). Session precedence is `OMITLEDGER_SESSION`, CLAUDE_SESSION_ID, CURSOR_SESSION_ID, then local. SQLite uses WAL and a 5000ms busy timeout. Every reopen appends one JSON re-request event to `reopen.jsonl` in the ledger's directory (append-only; default `.omitledger/reopen.jsonl`, moved by `--store` / `OMITLEDGER_STORE`, printed by `omitledger reopen-log`); the skill snippet resolves that path with the command at the start of the next session and re-requests the listed items.
 
 ## Roadmap and scope
 
-Current usable entry points are init/add/list/reopen/report/export/mcp, and reopen reinjects into the next session via `.omitledger/reopen.jsonl`. `omitledger mcp` serves a native MCP server over stdio; the interactive TUI viewer and team aggregation are still unwired, and internal modules alone do not establish CLI support.
+Current usable entry points are init/add/list/reopen/reopen-log/report/export/mcp, and reopen reinjects into the next session via `reopen.jsonl` beside the ledger. `omitledger mcp` serves a native MCP server over stdio; the interactive TUI viewer and team aggregation are still unwired, and internal modules alone do not establish CLI support.
 
 - Records are caller statements: missing entries do not establish absence of omissions, and reopened does not mean completed.
 - `omitledger mcp` serves the three MCP tools; the interactive TUI viewer is still a placeholder command without an interface.

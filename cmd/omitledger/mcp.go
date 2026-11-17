@@ -18,7 +18,7 @@ ledger as tools agents call directly instead of shelling out:
 
   record_omission  — record a deliberate omission with the agent-stated reason
   list_omissions   — list recorded omissions, oldest first (JSON array)
-  reopen_omission  — re-request an omission; appends to .omitledger/reopen.jsonl
+  reopen_omission  — re-request an omission; appends to reopen.jsonl beside the ledger
 
 The server speaks MCP over stdin/stdout, so point your MCP client at:
 

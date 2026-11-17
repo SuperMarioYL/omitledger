@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/SuperMarioYL/omitledger/internal/ledger"
@@ -178,5 +179,70 @@ func TestReopenCommandAppendsReinjectionLog(t *testing.T) {
 	}
 	if rec.Item != "parser unit test" || rec.ReopenNote != "needs the test" || rec.Status != ledger.StatusReopened {
 		t.Fatalf("reinject record = %+v", rec)
+	}
+}
+
+// m4: --out is a file contract. A filtered-empty selection must still write the
+// report (and must not claim the whole ledger is empty).
+func TestReportOutWritesEmptySessionReport(t *testing.T) {
+	seedStore(t, ledger.Omission{Item: "in s2", Reason: "r", SessionID: "s2"})
+	out := filepath.Join(t.TempDir(), "report.md")
+	reportSession, reportOut = "s1", out
+	defer func() { reportSession, reportOut = "", "" }()
+	stdout := captureStdout(t, func() {
+		if err := reportCmd.RunE(reportCmd, nil); err != nil {
+			t.Errorf("report run: %v", err)
+		}
+	})
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatalf("report --out wrote no file: %v (stdout %q)", err, stdout)
+	}
+	if !strings.Contains(string(data), "0 omission(s) recorded") {
+		t.Fatalf("empty-session report = %q, want a 0-record report", data)
+	}
+	if !strings.Contains(stdout, out) {
+		t.Fatalf("stdout = %q, want it to confirm the written path", stdout)
+	}
+}
+
+// m4: with no file requested, the hint must name the session instead of
+// describing a non-empty ledger as empty.
+func TestReportEmptyHintNamesSession(t *testing.T) {
+	seedStore(t, ledger.Omission{Item: "in s2", Reason: "r", SessionID: "s2"})
+	reportSession, reportOut = "s1", ""
+	defer func() { reportSession, reportOut = "", "" }()
+	out := captureStdout(t, func() {
+		if err := reportCmd.RunE(reportCmd, nil); err != nil {
+			t.Errorf("report run: %v", err)
+		}
+	})
+	if !strings.Contains(out, "s1") {
+		t.Fatalf("hint = %q, want it to name session s1", out)
+	}
+	if strings.Contains(out, "no omissions recorded yet") {
+		t.Fatalf("hint = %q misdescribes a ledger that has records", out)
+	}
+}
+
+// m3: the skill resolves the log through this command, so it must print the
+// store-adjacent path — even when the store lives outside the working directory.
+func TestReopenLogCommandPrintsStoreAdjacentPath(t *testing.T) {
+	path := seedStore(t, ledger.Omission{Item: "parser unit test", Reason: "r"})
+	out := captureStdout(t, func() {
+		if err := reopenLogCmd.RunE(reopenLogCmd, nil); err != nil {
+			t.Errorf("reopen-log run: %v", err)
+		}
+	})
+	want := filepath.Join(filepath.Dir(path), ledger.ReopenLogName)
+	if got := strings.TrimSpace(out); got != want {
+		t.Fatalf("reopen-log printed %q, want %q", got, want)
+	}
+	reopenNote = ""
+	if err := reopenCmd.RunE(reopenCmd, []string{"1"}); err != nil {
+		t.Fatalf("reopen run: %v", err)
+	}
+	if _, err := os.Stat(want); err != nil {
+		t.Fatalf("reopen log not written at the printed path: %v", err)
 	}
 }

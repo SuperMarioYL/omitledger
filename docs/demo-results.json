@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "scope": "Real CLI add, list and reopen lifecycle in a temporary SQLite ledger, using a synthetic omitted test. No agent is run and no source file is changed.",
   "inputs": [
     {

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0] — 2026-11-18
+### Fixed — four verified defects from the v0.3.0 source
+- The ledger now actually runs in WAL mode. The READMEs and the site promised "SQLite uses WAL", but the DSN set only `busy_timeout` and `foreign_keys`, so the database opened in rollback-journal mode and a reader blocked on the writer's exclusive lock. `journal_mode=WAL` is applied on open; existing ledgers are switched in place and keep every row.
+- A limited listing no longer drops the oldest records. `Store.List` stopped scanning at the limit *before* sorting by time, so `List{Limit: N}` returned the first N rows encountered (ULID order, whose same-millisecond suffix is random) instead of the oldest N — the oldest record could silently vanish. The limit now windows the sorted result; the MCP `list_omissions {limit}` tool inherits the fix.
+- Re-injection now works with a relocated ledger. `reopen.jsonl` is written beside the ledger DB, but the agent skill read the hard-coded `.omitledger/reopen.jsonl`, so any `--store` / `OMITLEDGER_STORE` override recorded the re-request and delivered nothing to the next session. New `omitledger reopen-log` prints the log's absolute path (single owner: `ledger.ReopenLogPath`), and the skill snippet resolves the path through that command.
+- `report --out` always writes the report. An empty (or filtered-empty) selection used to print "no omissions recorded yet", write no file and exit 0, leaving automation to read a stale report. The markdown is now built unconditionally; with `--out` it is always written, and the stdout hint names the session when a filter matched nothing.
+
+### Changed
+- Version surfaces are pinned in one place: `TestVersionLockstep` now also covers the site footer tag and `docs/demo-results.json`, which earlier sweeps left unchecked.
+- The interactive TUI viewer remains the only stub command.
+
 ## [0.3.0] — 2026-10-16
 ### Fixed — three verified defects from the v0.2.0 source
 - The ledger no longer mis-orders records added within the same second: `Store.List` ordered by the RFC3339Nano TEXT column, whose variable-length fraction sorts byte-wise ("…0.91Z" sorts before "…0.9Z"), so insertion order — and the `#` line column and `reopen <line>` resolution derived from it — could silently target the wrong record. "Oldest first" now has one owner: rows are stable-sorted by parsed time with the ULID as tie-break. No schema change; existing ledgers keep working and now order correctly.
@@ -44,3 +55,4 @@
 - ~~`omitledger report` — post-session markdown report + `.omitledger/reopen.jsonl` re-injection + JSON export for a CI merge-gate (m3).~~ — shipped in 0.2.0.
 
 [0.3.0]: https://github.com/SuperMarioYL/omitledger/compare/v0.2.0...v0.3.0
+[0.4.0]: https://github.com/SuperMarioYL/omitledger/compare/v0.3.0...v0.4.0

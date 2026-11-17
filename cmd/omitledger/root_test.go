@@ -35,12 +35,34 @@ func TestVersionLockstep(t *testing.T) {
 		Meta struct {
 			ContentVersion string `json:"content_version"`
 		} `json:"meta"`
+		Footer struct {
+			Tag string `json:"tag"`
+		} `json:"footer"`
 	}
 	if err := json.Unmarshal(siteRaw, &site); err != nil {
 		t.Fatalf("parse web/site.json: %v", err)
 	}
 	if site.Meta.ContentVersion != version {
 		t.Fatalf("web/site.json meta.content_version = %q, want %q", site.Meta.ContentVersion, version)
+	}
+	// The footer tag is a second spelling of the version on the same surface.
+	if !strings.HasPrefix(site.Footer.Tag, version+" ") {
+		t.Fatalf("web/site.json footer tag = %q, want it to start with %q", site.Footer.Tag, version+" ")
+	}
+
+	// The recorded demo output names the version it was produced against.
+	demoRaw, err := os.ReadFile(repoRoot + "/docs/demo-results.json")
+	if err != nil {
+		t.Fatalf("read docs/demo-results.json: %v", err)
+	}
+	var demo struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(demoRaw, &demo); err != nil {
+		t.Fatalf("parse docs/demo-results.json: %v", err)
+	}
+	if demo.Version != version {
+		t.Fatalf("docs/demo-results.json version = %q, want %q", demo.Version, version)
 	}
 
 	// Both README hero tag lines carry the version too.

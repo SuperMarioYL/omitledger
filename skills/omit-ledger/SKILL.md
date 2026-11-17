@@ -21,8 +21,12 @@ The user reviews with `omitledger list` and re-requests an item with `omitledger
 At the START of every session, check whether the user re-requested anything:
 
 ```bash
-[ -f .omitledger/reopen.jsonl ] && cat .omitledger/reopen.jsonl
+log="$(omitledger reopen-log)" && [ -f "$log" ] && cat "$log"
 ```
+
+The log sits next to the ledger, so its path follows `--store` / `OMITLEDGER_STORE`.
+Always resolve it with `omitledger reopen-log`; do not assume the default
+`.omitledger/reopen.jsonl`, which is wrong whenever the ledger lives elsewhere.
 
 Each line is one re-request event (JSON: id, item, reason, file, reopened_at, reopen_note). Treat every line as an instruction to address that omitted item in this session (dedupe by id — the log is append-only history, not latest state). Acknowledge each re-requested item before starting new work.
 

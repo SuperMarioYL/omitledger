@@ -41,7 +41,7 @@ func New(st *ledger.Store, version string) *Server {
 	mcp.AddTool(s.server, &mcp.Tool{
 		Name: "reopen_omission",
 		Description: "Re-request a recorded omission: status becomes reopened and the item is " +
-			"appended to .omitledger/reopen.jsonl for re-injection into the next agent session. " +
+			"appended to reopen.jsonl beside the ledger for re-injection into the next agent session. " +
 			"ref is an omission ULID or a 1-based line number from list_omissions.",
 	}, s.reopen)
 	return s

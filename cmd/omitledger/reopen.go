@@ -21,8 +21,9 @@ line number (the # column from ` + "`list`" + ` — also under a --status filter
 so ` + "`reopen 1`" + ` reopens the first recorded omission without copying a ULID.
 
 Reopen also re-injects the item into the next agent session: the record is
-appended to .omitledger/reopen.jsonl, which the agent skill reads at the
-start of the next session to re-request it.`,
+appended to reopen.jsonl in the ledger's directory (default
+.omitledger/reopen.jsonl; ` + "`omitledger reopen-log`" + ` prints the path), which
+the agent skill reads at the start of the next session to re-request it.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		st, err := openStore()

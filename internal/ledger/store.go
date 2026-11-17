@@ -33,13 +33,9 @@ type Store struct {
 // at path. Any command is self-initializing, so `add` works even before an
 // explicit `init`; `init` exists as the friendly explicit setup entry point.
 func Open(path string) (*Store, error) {
-	if path == "" {
-		path = DefaultStorePath
-	}
-	path = expandHomePath(path)
-	abs, err := filepath.Abs(path)
+	abs, err := resolveStorePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("resolve store path: %w", err)
+		return nil, err
 	}
 	dir := filepath.Dir(abs)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -50,10 +46,15 @@ func Open(path string) (*Store, error) {
 	// so a raw path containing either would silently relocate the ledger into
 	// a truncated file. url.URL escapes those characters and SQLite decodes
 	// them back, so every filesystem-legal path round-trips.
+	//
+	// journal_mode=WAL is what the READMEs and the site promise: the documented
+	// default journal is rollback ("delete"), which makes a reader block on the
+	// writer's exclusive lock. journal_mode is a persistent DB property, so the
+	// pragma applied on open both enables it and keeps existing ledgers working.
 	dsn := (&url.URL{
 		Scheme:   "file",
 		Path:     abs,
-		RawQuery: "_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)",
+		RawQuery: "_pragma=busy_timeout(5000)&_pragma=foreign_keys(on)&_pragma=journal_mode(WAL)",
 	}).String()
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -72,6 +73,21 @@ func Open(path string) (*Store, error) {
 
 // Path returns the absolute path of the ledger DB file.
 func (s *Store) Path() string { return s.path }
+
+// resolveStorePath turns a caller-supplied ledger path into the absolute path
+// Open uses: the documented default when empty, a leading ~ expanded to $HOME,
+// then made absolute against the working directory. One owner for the documented
+// path contract shared by Open and ReopenLogPath.
+func resolveStorePath(path string) (string, error) {
+	if path == "" {
+		path = DefaultStorePath
+	}
+	abs, err := filepath.Abs(expandHomePath(path))
+	if err != nil {
+		return "", fmt.Errorf("resolve store path: %w", err)
+	}
+	return abs, nil
+}
 
 // expandHomePath expands a leading "~" or "~/" to the user's home directory.
 // The documented global-ledger path (~/.omitledger/ledger.db via
@@ -161,15 +177,17 @@ type ListFilter struct {
 
 // List returns omissions matching filter, oldest first (insertion order).
 // Status filtering delegates to MatchesStatus so the store and the CLI list
-// view share one definition; the limit applies after filtering (it caps the
-// result set, not the scan).
+// view share one definition; Limit caps the sorted result (the oldest N), not
+// the scan.
 //
 // "Oldest first" is owned here, in Go: created_at is stored as RFC3339Nano
 // TEXT whose variable-length fraction makes SQL TEXT ordering wrong for
 // sub-second timestamps ("…0.91Z" sorts before "…0.9Z" byte-wise). Rows are
-// scanned in ULID order (time-ordered at ms precision) and stable-sorted by
-// parsed time with the ID as tie-break — exact insertion order, no schema
-// change and no migration for ledgers written by earlier versions.
+// scanned in ULID order and stable-sorted by parsed time with the ID as
+// tie-break — exact insertion order, no schema change and no migration for
+// ledgers written by earlier versions. The ULID is only a scan order: its
+// random same-millisecond suffix does not sort like insertion time, which is
+// why the limit is applied after the sort.
 func (s *Store) List(f ListFilter) ([]Omission, error) {
 	if err := ValidateStatusFilter(f.Status); err != nil {
 		return nil, err
@@ -196,9 +214,6 @@ FROM omissions`
 		if !MatchesStatus(o, f.Status) {
 			continue
 		}
-		if f.Limit > 0 && len(out) == f.Limit {
-			break
-		}
 		out = append(out, o)
 	}
 	if err := rows.Err(); err != nil {
@@ -210,6 +225,9 @@ FROM omissions`
 		}
 		return out[i].ID < out[j].ID
 	})
+	if f.Limit > 0 && len(out) > f.Limit {
+		out = out[:f.Limit]
+	}
 	return out, nil
 }
 
@@ -306,6 +324,25 @@ func (s *Store) Resolve(id string) (Omission, error) {
 // reads it at the next session start and re-requests the listed items.
 const ReopenLogName = "reopen.jsonl"
 
+// ReopenLogPath returns the absolute path of the re-injection log for the ledger
+// at ledgerPath (the same resolution Open applies: empty means the default
+// store, a leading ~ expands to $HOME). The log always lives next to the DB, so
+// this is the authoritative answer for consumers such as the agent skill — they
+// must not assume the default .omitledger/ spelling, which a --store or
+// OMITLEDGER_STORE override silently invalidates.
+func ReopenLogPath(ledgerPath string) (string, error) {
+	abs, err := resolveStorePath(ledgerPath)
+	if err != nil {
+		return "", err
+	}
+	return reopenLogPath(abs), nil
+}
+
+// reopenLogPath places the re-injection log beside the resolved ledger DB.
+func reopenLogPath(absDBPath string) string {
+	return filepath.Join(filepath.Dir(absDBPath), ReopenLogName)
+}
+
 // AppendReinject appends o as one JSON line to <ledger-dir>/reopen.jsonl and
 // returns the log path. The log is append-only history — one event per
 // re-request with its note, not latest state; a consumer wanting current
@@ -315,7 +352,7 @@ func (s *Store) AppendReinject(o Omission) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("encode reopen record: %w", err)
 	}
-	path := filepath.Join(filepath.Dir(s.path), ReopenLogName)
+	path := reopenLogPath(s.path)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return "", fmt.Errorf("open reopen log %s: %w", path, err)
@@ -342,10 +379,10 @@ func (s *Store) Counts() (open, total int, err error) {
 
 func scanOmission(rows *sql.Rows) (Omission, error) {
 	var (
-		o                Omission
-		createdAt        string
-		status           string
-		reopenedAt       sql.NullString
+		o          Omission
+		createdAt  string
+		status     string
+		reopenedAt sql.NullString
 	)
 	err := rows.Scan(&o.ID, &o.SessionID, &o.File, &o.Item, &o.Reason, &o.Category,
 		&createdAt, &status, &reopenedAt, &o.ReopenNote)

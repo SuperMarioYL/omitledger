@@ -9,7 +9,7 @@
 
 **把省略的事项、理由、文件与会话记录到本地台账，供审阅者决定哪些需要重新处理。**
 
-`v0.3.0` · `Go 1.24+` · [MIT](LICENSE)
+`v0.4.0` · `Go 1.24+` · [MIT](LICENSE)
 
 [Website](https://omitledger.lei6393.com) · [Demo record](docs/demo-results.json)
 
@@ -23,12 +23,12 @@
   <source media="(max-width: 640px) and (prefers-color-scheme: dark)" srcset="assets/presentation/architecture-mobile-dark.svg">
   <source media="(max-width: 640px)" srcset="assets/presentation/architecture-mobile-light.svg">
   <source media="(prefers-color-scheme: dark)" srcset="assets/presentation/architecture-dark.svg">
-  <img src="assets/presentation/architecture-light.svg" width="1000" alt="Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到 .omitledger/reopen.jsonl 供下一会话重注入；mcp 经 stdio 暴露 record/list/reopen 三个 MCP 工具（TUI 仍为占位）。">
+  <img src="assets/presentation/architecture-light.svg" width="1000" alt="Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到台账目录下的 reopen.jsonl（默认 .omitledger/reopen.jsonl，可用 `omitledger reopen-log` 查询）供下一会话重注入；mcp 经 stdio 暴露 record/list/reopen 三个 MCP 工具（TUI 仍为占位）。">
 </picture>
 
-Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到 `.omitledger/reopen.jsonl` 供下一会话重注入，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（TUI 仍为占位）。
+Cobra CLI 把 add/list/reopen/report/export 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并把条目追加到台账目录下的 `reopen.jsonl`（默认 `.omitledger/reopen.jsonl`，`omitledger reopen-log` 会打印实际路径）供下一会话重注入，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（TUI 仍为占位）。
 
-源码入口：[cmd/omitledger/root.go](cmd/omitledger/root.go) · [cmd/omitledger/add.go](cmd/omitledger/add.go) · [cmd/omitledger/list.go](cmd/omitledger/list.go) · [cmd/omitledger/reopen.go](cmd/omitledger/reopen.go) · [cmd/omitledger/report.go](cmd/omitledger/report.go) · [cmd/omitledger/export.go](cmd/omitledger/export.go) · [cmd/omitledger/mcp.go](cmd/omitledger/mcp.go) · [internal/ledger/store.go](internal/ledger/store.go)
+源码入口：[cmd/omitledger/root.go](cmd/omitledger/root.go) · [cmd/omitledger/add.go](cmd/omitledger/add.go) · [cmd/omitledger/list.go](cmd/omitledger/list.go) · [cmd/omitledger/reopen.go](cmd/omitledger/reopen.go) · [cmd/omitledger/reopenlog.go](cmd/omitledger/reopenlog.go) · [cmd/omitledger/report.go](cmd/omitledger/report.go) · [cmd/omitledger/export.go](cmd/omitledger/export.go) · [cmd/omitledger/mcp.go](cmd/omitledger/mcp.go) · [internal/ledger/store.go](internal/ledger/store.go)
 
 ## 安装
 
@@ -57,12 +57,13 @@ bash examples/presentation-demo.sh
 ./bin/omitledger add --item "API example" --reason "deferred for review" --file README.md --category doc
 ./bin/omitledger list --status open
 ./bin/omitledger reopen 1 --note "include a complete request"
+./bin/omitledger reopen-log                   # 打印重注入日志的实际路径（跟随 --store / OMITLEDGER_STORE）
 ./bin/omitledger report                      # 会话后 markdown 摘要（按类别分组 + 重请求清单）
 ./bin/omitledger report --session <id>       # 只汇总某个会话
 ./bin/omitledger export json > omissions.json  # CI merge-gate 用的 JSON 导出
 ./bin/omitledger mcp                        # MCP server（stdio）：record_omission / list_omissions / reopen_omission
 ```
-`--item` 与 `--reason` 必填。类别约定为 test/file/section/refactor/doc/log，仓库级条目可用 `--file "*"`。reopen 可接受稳定 ID 或 # 列行号；筛选视图（如 `--status open`）中的行号同样是全量台账位置，可直接用于 reopen。
+`--item` 与 `--reason` 必填。类别约定为 test/file/section/refactor/doc/log，仓库级条目可用 `--file "*"`。reopen 可接受稳定 ID 或 # 列行号；筛选视图（如 `--status open`）中的行号同样是全量台账位置，可直接用于 reopen。`reopen-log` 打印重注入日志的绝对路径：日志始终在台账数据库旁边，覆盖 --store / OMITLEDGER_STORE 后不要假设它仍是 `.omitledger/reopen.jsonl`。
 
 ## 实际 Demo
 
@@ -112,11 +113,11 @@ reopened 000T0ZPHK7EB5WN6SCHAH9546H: retry-path test
 
 ## 配置
 
-台账位置优先级：`--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`（支持 `~/` 前缀展开）。会话优先读取 `OMITLEDGER_SESSION`、CLAUDE_SESSION_ID、CURSOR_SESSION_ID，最终回退 local。SQLite 使用 WAL 与 5000ms busy timeout。每次 reopen 会向台账目录下的 `.omitledger/reopen.jsonl` 追加一条 JSON 重请求事件（append-only），技能片段在下一会话开始时读取它并重新请求对应条目。
+台账位置优先级：`--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`（支持 `~/` 前缀展开）。会话优先读取 `OMITLEDGER_SESSION`、CLAUDE_SESSION_ID、CURSOR_SESSION_ID，最终回退 local。SQLite 使用 WAL 与 5000ms busy timeout。每次 reopen 会向台账数据库所在目录的 `reopen.jsonl` 追加一条 JSON 重请求事件（append-only；默认路径为 `.omitledger/reopen.jsonl`，设置 `--store` / `OMITLEDGER_STORE` 后随之移动，`omitledger reopen-log` 打印实际路径），技能片段在下一会话开始时通过该命令取得路径并读取、重新请求对应条目。
 
 ## 路线图与范围
 
-当前可用入口为 init/add/list/reopen/report/export/mcp，reopen 经 `.omitledger/reopen.jsonl` 在下一会话重注入。`omitledger mcp` 在 stdio 上提供原生 MCP server；交互式 TUI 查看器与团队聚合仍未实现，不能因仓库存在内部模块就视为 CLI 已支持。
+当前可用入口为 init/add/list/reopen/reopen-log/report/export/mcp，reopen 经台账旁的 `reopen.jsonl` 在下一会话重注入。`omitledger mcp` 在 stdio 上提供原生 MCP server；交互式 TUI 查看器与团队聚合仍未实现，不能因仓库存在内部模块就视为 CLI 已支持。
 
 - 记录是调用方自述；缺少条目不表示没有遗漏，reopened 不表示工作已完成。
 - `omitledger mcp` 提供三个 MCP 工具；交互式 TUI 查看器仍是占位命令，不提供交互界面。

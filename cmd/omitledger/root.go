@@ -23,7 +23,7 @@ The agent skill snippet (skills/omit-ledger/SKILL.md) makes an agent call
 // version is the CLI version, surfaced by `omitledger --version`. It is
 // pinned to the repo-root VERSION file and the web/site.json
 // meta.content_version by TestVersionLockstep — bump all surfaces together.
-const version = "0.3.0"
+const version = "0.4.0"
 
 var rootCmd = &cobra.Command{
 	Use:           "omitledger",
@@ -43,6 +43,7 @@ func init() {
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(reopenCmd)
+	rootCmd.AddCommand(reopenLogCmd)
 	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(reportCmd)
 	rootCmd.AddCommand(exportCmd)

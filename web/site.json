@@ -10,7 +10,7 @@
   },
   "meta": {
     "visual_profile": "neon-particle",
-    "content_version": "0.3.0",
+    "content_version": "0.4.0",
     "demo_source": "docs/demo-results.json"
   },
   "hero": {
@@ -117,8 +117,8 @@
           "en": "How it works"
         },
         "body": {
-          "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（交互式 TUI 仍为占位）。",
-          "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state; it does not execute omitted work. mcp exposes the record_omission / list_omissions / reopen_omission tools over stdio (the interactive TUI remains a placeholder)."
+          "zh": "Cobra CLI 把 add/list/reopen 映射到 ledger.Store。SQLite 保存 Omission 的类别、目标文件、会话、状态与复核备注。reopen 更新台账状态并向台账旁的 reopen.jsonl 追加重请求事件，不会自动执行被省略的任务；mcp 在 stdio 上暴露 record_omission / list_omissions / reopen_omission 三个工具（交互式 TUI 仍为占位）。",
+          "en": "The Cobra CLI maps add/list/reopen to ledger.Store. SQLite stores an Omission’s category, target file, session, status and review note. reopen updates ledger state and appends a re-request event to reopen.jsonl beside the ledger; it does not execute omitted work. mcp exposes the record_omission / list_omissions / reopen_omission tools over stdio (the interactive TUI remains a placeholder)."
         },
         "image": {
           "light": "/assets/presentation/architecture-light.svg",
@@ -173,8 +173,8 @@
           "en": "Configuration"
         },
         "body": {
-          "zh": "台账位置优先级：`--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`。会话优先读取 `OMITLEDGER_SESSION`、CLAUDE_SESSION_ID、CURSOR_SESSION_ID，最终回退 local。SQLite 使用 WAL 与 5000ms busy timeout。",
-          "en": "Ledger location precedence is `--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`. Session precedence is `OMITLEDGER_SESSION`, CLAUDE_SESSION_ID, CURSOR_SESSION_ID, then local. SQLite uses WAL and a 5000ms busy timeout."
+          "zh": "台账位置优先级：`--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`。会话优先读取 `OMITLEDGER_SESSION`、CLAUDE_SESSION_ID、CURSOR_SESSION_ID，最终回退 local。SQLite 使用 WAL 与 5000ms busy timeout。重注入日志 `reopen.jsonl` 始终位于台账数据库旁（默认 `.omitledger/reopen.jsonl`），覆盖台账位置后随之移动；`omitledger reopen-log` 打印它的实际绝对路径。",
+          "en": "Ledger location precedence is `--store` > `OMITLEDGER_STORE` > `.omitledger/ledger.db`. Session precedence is `OMITLEDGER_SESSION`, CLAUDE_SESSION_ID, CURSOR_SESSION_ID, then local. SQLite uses WAL and a 5000ms busy timeout. The re-injection log `reopen.jsonl` always sits beside the ledger DB (default `.omitledger/reopen.jsonl`), follows any location override, and `omitledger reopen-log` prints its actual absolute path."
         }
       }
     ]
@@ -243,6 +243,6 @@
     }
   ],
   "footer": {
-    "tag": "0.3.0 · Go 1.24+ · MIT"
+    "tag": "0.4.0 · Go 1.24+ · MIT"
   }
 }

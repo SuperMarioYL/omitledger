@@ -366,6 +366,122 @@ func TestGetByIndexMatchesListOrder(t *testing.T) {
 	}
 }
 
+// m1: the READMEs and the site promise WAL; the DSN must actually enable it.
+func TestOpenEnablesWAL(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+
+	var mode string
+	if err := s.db.QueryRow(`PRAGMA journal_mode`).Scan(&mode); err != nil {
+		t.Fatalf("read journal_mode: %v", err)
+	}
+	if !strings.EqualFold(mode, "wal") {
+		t.Fatalf("journal_mode = %q, want wal (the documented mode)", mode)
+	}
+	if _, err := s.Add(Omission{Item: "wal probe", Reason: "r"}); err != nil {
+		t.Fatalf("add on a WAL ledger: %v", err)
+	}
+	// A WAL database keeps its sidecar next to the DB file while open.
+	if _, err := os.Stat(s.Path() + "-wal"); err != nil {
+		t.Fatalf("WAL sidecar missing at %s-wal: %v", s.Path(), err)
+	}
+	got, err := s.List(ListFilter{})
+	if err != nil || len(got) != 1 || got[0].Item != "wal probe" {
+		t.Fatalf("WAL ledger round trip = %+v (err %v)", got, err)
+	}
+}
+
+// m2: a limit must window the SORTED result, not the scan order — otherwise the
+// oldest records silently vanish from a limited listing.
+func TestListLimitAppliesAfterSort(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "ledger.db"))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer s.Close()
+	base := time.Date(2026, 11, 18, 12, 0, 0, 0, time.UTC)
+	// Insertion order deliberately differs from created_at order.
+	for _, rec := range []struct {
+		item string
+		at   time.Duration
+	}{{"late", 200}, {"early", 100}, {"middle", 150}} {
+		if _, err := s.Add(Omission{Item: rec.item, Reason: "r", CreatedAt: base.Add(rec.at * time.Millisecond)}); err != nil {
+			t.Fatalf("add %s: %v", rec.item, err)
+		}
+	}
+
+	limited, err := s.List(ListFilter{Limit: 2})
+	if err != nil {
+		t.Fatalf("list limited: %v", err)
+	}
+	if len(limited) != 2 || limited[0].Item != "early" || limited[1].Item != "middle" {
+		t.Fatalf("limit=2 window = %+v, want the two earliest [early middle]", limited)
+	}
+
+	all, err := s.List(ListFilter{})
+	if err != nil {
+		t.Fatalf("list all: %v", err)
+	}
+	if len(all) != 3 || all[0].Item != "early" || all[1].Item != "middle" || all[2].Item != "late" {
+		t.Fatalf("unlimited order = %+v, want [early middle late]", all)
+	}
+
+	if _, err := s.Reopen(all[0].ID, ""); err != nil {
+		t.Fatalf("reopen earliest: %v", err)
+	}
+	openLimited, err := s.List(ListFilter{Status: StatusOpen, Limit: 1})
+	if err != nil {
+		t.Fatalf("list open limited: %v", err)
+	}
+	if len(openLimited) != 1 || openLimited[0].Item != "middle" {
+		t.Fatalf("open+limit=1 = %+v, want the earliest still-open record [middle]", openLimited)
+	}
+}
+
+// m3: the re-injection log lives next to the resolved ledger; ReopenLogPath is
+// the exported owner of that rule so consumers do not hard-code the default.
+func TestReopenLogPathFollowsStore(t *testing.T) {
+	dir := t.TempDir()
+	for _, dbPath := range []string{
+		filepath.Join(dir, "plain", "ledger.db"),
+		filepath.Join(dir, "weird?name", "ledger.db"),
+	} {
+		got, err := ReopenLogPath(dbPath)
+		if err != nil {
+			t.Fatalf("ReopenLogPath(%q): %v", dbPath, err)
+		}
+		if want := filepath.Join(filepath.Dir(dbPath), ReopenLogName); got != want {
+			t.Fatalf("ReopenLogPath(%q) = %q, want %q", dbPath, got, want)
+		}
+	}
+
+	// The default (empty) path resolves relative to the working directory.
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	def, err := ReopenLogPath("")
+	if err != nil {
+		t.Fatalf("ReopenLogPath(default): %v", err)
+	}
+	if want := filepath.Join(wd, ".omitledger", ReopenLogName); def != want {
+		t.Fatalf("default reopen log = %q, want %q", def, want)
+	}
+
+	// A documented ~/ ledger keeps the log inside the expanded directory.
+	t.Setenv("HOME", dir)
+	home, err := ReopenLogPath("~/global/ledger.db")
+	if err != nil {
+		t.Fatalf("ReopenLogPath(tilde): %v", err)
+	}
+	if want := filepath.Join(dir, "global", ReopenLogName); home != want {
+		t.Fatalf("tilde reopen log = %q, want %q", home, want)
+	}
+}
+
 // m11: the store path is spliced into a file: URI — '?', '#' and '%' are
 // filesystem-legal and must round-trip instead of being parsed as query or
 // fragment separators (which silently relocated the ledger).
